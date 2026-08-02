@@ -1,4 +1,4 @@
-import { NavLink, Outlet } from 'react-router-dom'
+import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard,
   MessageSquare,
@@ -6,9 +6,11 @@ import {
   LogOut,
   Menu,
   X,
+  Eye,
 } from 'lucide-react'
 import { useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
+import { AnimateIn } from './AnimateIn'
 
 const navItems = [
   { to: '/dashboard/overview', label: 'Overview', icon: LayoutDashboard },
@@ -19,6 +21,7 @@ const navItems = [
 export function DashboardLayout() {
   const { signOut, user } = useAuth()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const location = useLocation()
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
@@ -75,14 +78,23 @@ export function DashboardLayout() {
                     : 'text-foreground/70 hover:bg-muted hover:text-foreground'
                 }`
               }
-              aria-current={({ isActive }) =>
-                isActive ? 'page' as const : undefined
-              }
             >
               <item.icon className="h-4 w-4" />
               {item.label}
             </NavLink>
           ))}
+
+          {/* Separator before preview link */}
+          <div className="my-2 border-t border-border" />
+
+          <NavLink
+            to="/widget"
+            onClick={() => setSidebarOpen(false)}
+            className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-foreground/70 transition-colors duration-150 hover:bg-muted hover:text-foreground"
+          >
+            <Eye className="h-4 w-4" />
+            View Chat Widget
+          </NavLink>
         </nav>
 
         {/* User footer */}
@@ -126,7 +138,9 @@ export function DashboardLayout() {
           id="main-content"
           className="flex-1 overflow-y-auto bg-background"
         >
-          <Outlet />
+          <AnimateIn key={location.pathname} from="fade" duration={200}>
+            <Outlet />
+          </AnimateIn>
         </main>
       </div>
     </div>

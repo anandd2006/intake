@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { Loader2, Users, Target, ArrowRight, MessageSquare } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { useCountUp, useAnimeStagger } from '../hooks/useAnime'
 
 interface Stats {
   totalThisWeek: number
@@ -36,6 +37,15 @@ export function OverviewPage() {
   const [stats, setStats] = useState<Stats | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  // anime.js — count-up on stat cards once data arrives
+  const totalRef = useCountUp<HTMLDivElement>(stats?.totalThisWeek ?? 0, [stats?.totalThisWeek], 600)
+  const rateRef = useCountUp<HTMLDivElement>(stats?.qualifiedRate ?? 0, [stats?.qualifiedRate], 600)
+  // Staggered entrance for recent activity rows (one-shot after load)
+  const activityRef = useAnimeStagger<HTMLDivElement>(
+    [loading, stats?.recentActivity?.length ?? 0],
+    { staggerBy: 45, duration: 320, from: 'fade' }
+  )
 
   useEffect(() => {
     loadStats()
@@ -142,7 +152,7 @@ export function OverviewPage() {
             </div>
           </div>
           <div className="mt-4">
-            <div className="text-3xl font-semibold text-foreground">
+            <div ref={totalRef} className="text-3xl font-semibold text-foreground">
               {stats?.totalThisWeek ?? 0}
             </div>
             <div className="mt-1 text-sm text-foreground/60">
@@ -158,7 +168,7 @@ export function OverviewPage() {
             </div>
           </div>
           <div className="mt-4">
-            <div className="text-3xl font-semibold text-foreground">
+            <div ref={rateRef} className="text-3xl font-semibold text-foreground">
               {stats?.qualifiedRate ?? 0}%
             </div>
             <div className="mt-1 text-sm text-foreground/60">
@@ -197,7 +207,7 @@ export function OverviewPage() {
             </p>
           </div>
         ) : (
-          <div className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-white">
+          <div ref={activityRef} className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-white">
             {stats?.recentActivity.map((item) => {
               const config = statusConfig[item.status] || statusConfig.active
               const date = new Date(item.created_at)

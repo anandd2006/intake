@@ -11,6 +11,7 @@ import {
   Search,
   X,
 } from 'lucide-react'
+import { useAnimeStagger } from '../hooks/useAnime'
 
 type StatusFilter = 'all' | 'qualified' | 'needs_info' | 'out_of_scope' | 'active'
 type SortField = 'created_at' | 'status'
@@ -47,6 +48,9 @@ export function LeadsListPage() {
   const [sortField, setSortField] = useState<SortField>('created_at')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
   const [searchQuery, setSearchQuery] = useState('')
+
+  // anime.js — stagger rows on initial load
+  const rowsRef = useAnimeStagger<HTMLDivElement>([loading, leads.length], { staggerBy: 40, duration: 280, from: 'fade' })
 
   useEffect(() => {
     loadLeads()
@@ -245,7 +249,7 @@ export function LeadsListPage() {
           </div>
 
           {/* Table rows */}
-          <div className="divide-y divide-border">
+          <div ref={rowsRef} className="divide-y divide-border">
             {filteredLeads.map((lead) => {
               const config = statusConfig[lead.status] || statusConfig.active
               const date = new Date(lead.created_at)

@@ -6,6 +6,9 @@ export const WIDGET_BASE_URL = import.meta.env.VITE_WIDGET_BASE_URL ?? window.lo
 /** The Supabase Edge Function URL for the chat proxy. */
 export const EDGE_FUNCTION_URL = import.meta.env.VITE_EDGE_FUNCTION_URL ?? `${env.supabaseUrl}/functions/v1/chat`
 
+/** The Supabase Edge Function URL that exchanges the Speechmatics API key for a realtime JWT. */
+export const STT_TOKEN_URL = import.meta.env.VITE_STT_TOKEN_URL ?? `${env.supabaseUrl}/functions/v1/stt-token`
+
 /** Known conversation statuses. */
 export const CONVERSATION_STATUS = {
   ACTIVE: 'active',

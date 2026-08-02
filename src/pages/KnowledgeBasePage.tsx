@@ -1,9 +1,8 @@
 import { useState, useEffect, type KeyboardEvent } from 'react'
 import { supabase } from '../lib/supabase'
-import { X, Plus, Save, Loader2 } from 'lucide-react'
-import type { Database } from '../types/database'
-
-type KnowledgeBase = Database['public']['Tables']['knowledge_base']['Row']
+import { X, Plus, Save, Loader2, UserRound } from 'lucide-react'
+import type { Json } from '../types/database'
+import type { ReferralContact } from '../types/features'
 
 function TagInput({
   label,
@@ -104,6 +103,12 @@ export function KnowledgeBasePage() {
   const [pastProjects, setPastProjects] = useState<PastProject[]>([])
   const [newProjectTitle, setNewProjectTitle] = useState('')
   const [newProjectDescription, setNewProjectDescription] = useState('')
+  const [referralContacts, setReferralContacts] = useState<ReferralContact[]>([])
+  const [newReferral, setNewReferral] = useState<ReferralContact>({
+    name: '',
+    service: '',
+    contact: '',
+  })
 
   // Convert past projects array to/from JSONB
   const projectsToStrings = (projects: PastProject[]): string[] =>
@@ -137,11 +142,12 @@ export function KnowledgeBasePage() {
     }
 
     if (data) {
-      setServices(data.services || [])
-      setPricingRanges(data.pricing_ranges || [])
+      setServices((data.services as string[]) || [])
+      setPricingRanges((data.pricing_ranges as string[]) || [])
       setAvailability(data.availability || '')
-      setOutOfScopeRules(data.out_of_scope_rules || [])
-      setPastProjects(stringsToProjects(data.past_projects || []))
+      setOutOfScopeRules((data.out_of_scope_rules as string[]) || [])
+      setPastProjects(stringsToProjects((data.past_projects as string[]) || []))
+      setReferralContacts((data.referral_contacts as ReferralContact[] | null) || [])
     }
     setLoading(false)
   }
@@ -170,6 +176,7 @@ export function KnowledgeBasePage() {
       availability,
       out_of_scope_rules: outOfScopeRules,
       past_projects: projectsToStrings(pastProjects),
+      referral_contacts: referralContacts as unknown as Json,
     }
 
     // Check if a row exists
@@ -320,6 +327,93 @@ export function KnowledgeBasePage() {
                 className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition-all duration-150 active:scale-[0.97] disabled:opacity-40"
               >
                 <Plus className="h-4 w-4" />
+                Add
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Referral Contacts — grounded out-of-scope suggestions */}
+        <div>
+          <label className="block text-sm font-medium text-foreground/80 mb-1.5">
+            Referral Contacts
+          </label>
+          <p className="mb-3 text-xs text-foreground/50">
+            When a lead is out of scope, the assistant suggests ONLY these people
+            (never invents one). If nothing matches, it declines gracefully.
+          </p>
+          <div className="space-y-3">
+            {referralContacts.length === 0 && (
+              <p className="text-sm text-foreground/40 italic">
+                No referrals configured. Out-of-scope leads will be politely
+                declined without a suggestion.
+              </p>
+            )}
+            {referralContacts.map((contact, i) => (
+              <div
+                key={i}
+                className="flex items-start gap-3 rounded-lg border border-border bg-white p-3"
+              >
+                <div className="mt-0.5 shrink-0 text-foreground/40">
+                  <UserRound className="h-4 w-4" aria-hidden="true" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm font-medium text-foreground">{contact.name}</div>
+                  <div className="mt-0.5 text-xs text-foreground/60">{contact.service}</div>
+                  <div className="mt-0.5 text-xs font-medium text-primary">{contact.contact}</div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setReferralContacts(referralContacts.filter((_, idx) => idx !== i))
+                  }
+                  className="mt-0.5 cursor-pointer rounded-md p-1 text-foreground/40 hover:text-destructive"
+                  aria-label={`Remove ${contact.name}`}
+                >
+                  <X className="h-4 w-4" aria-hidden="true" />
+                </button>
+              </div>
+            ))}
+            <div className="flex flex-col gap-2 rounded-lg border border-dashed border-border bg-muted/30 p-3 sm:flex-row">
+              <input
+                type="text"
+                value={newReferral.name}
+                onChange={(e) => setNewReferral({ ...newReferral, name: e.target.value })}
+                placeholder="Name"
+                className="flex-1 rounded-lg border border-border bg-white px-3 py-2 text-sm text-foreground placeholder:text-foreground/30 transition-colors duration-150 focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/20"
+              />
+              <input
+                type="text"
+                value={newReferral.service}
+                onChange={(e) => setNewReferral({ ...newReferral, service: e.target.value })}
+                placeholder="Service they cover (e.g. SEO)"
+                className="flex-1 rounded-lg border border-border bg-white px-3 py-2 text-sm text-foreground placeholder:text-foreground/30 transition-colors duration-150 focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/20"
+              />
+              <input
+                type="text"
+                value={newReferral.contact}
+                onChange={(e) => setNewReferral({ ...newReferral, contact: e.target.value })}
+                placeholder="Email or website"
+                className="flex-1 rounded-lg border border-border bg-white px-3 py-2 text-sm text-foreground placeholder:text-foreground/30 transition-colors duration-150 focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/20"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  const name = newReferral.name.trim()
+                  const service = newReferral.service.trim()
+                  const contact = newReferral.contact.trim()
+                  if (name && contact) {
+                    setReferralContacts([
+                      ...referralContacts,
+                      { name, service, contact },
+                    ])
+                    setNewReferral({ name: '', service: '', contact: '' })
+                  }
+                }}
+                disabled={!newReferral.name.trim() || !newReferral.contact.trim()}
+                className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition-all duration-150 active:scale-[0.97] disabled:opacity-40"
+              >
+                <Plus className="h-4 w-4" aria-hidden="true" />
                 Add
               </button>
             </div>

@@ -13,35 +13,50 @@ export type Database = {
         Row: {
           budget: string
           client_contact: string
+          company: string | null
           conversation_id: string
           created_at: string
+          email: string | null
+          enrichment: Json | null
           id: string
           project_type: string
           scope_summary: string
+          share_token: string
           timeline: string
           urgency: string
+          website: string | null
         }
         Insert: {
           budget?: string
           client_contact?: string
+          company?: string | null
           conversation_id: string
           created_at?: string
+          email?: string | null
+          enrichment?: Json | null
           id?: string
           project_type?: string
           scope_summary?: string
+          share_token?: string
           timeline?: string
           urgency?: string
+          website?: string | null
         }
         Update: {
           budget?: string
           client_contact?: string
+          company?: string | null
           conversation_id?: string
           created_at?: string
+          email?: string | null
+          enrichment?: Json | null
           id?: string
           project_type?: string
           scope_summary?: string
+          share_token?: string
           timeline?: string
           urgency?: string
+          website?: string | null
         }
         Relationships: [
           {
@@ -57,6 +72,8 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          qualification_checks: Json | null
+          referral: Json | null
           status: string
           updated_at: string
           visitor_id: string
@@ -64,6 +81,8 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          qualification_checks?: Json | null
+          referral?: Json | null
           status?: string
           updated_at?: string
           visitor_id?: string
@@ -71,6 +90,8 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          qualification_checks?: Json | null
+          referral?: Json | null
           status?: string
           updated_at?: string
           visitor_id?: string
@@ -85,6 +106,7 @@ export type Database = {
           out_of_scope_rules: Json
           past_projects: Json
           pricing_ranges: Json
+          referral_contacts: Json | null
           services: Json
           updated_at: string
         }
@@ -95,6 +117,7 @@ export type Database = {
           out_of_scope_rules?: Json
           past_projects?: Json
           pricing_ranges?: Json
+          referral_contacts?: Json | null
           services?: Json
           updated_at?: string
         }
@@ -105,6 +128,7 @@ export type Database = {
           out_of_scope_rules?: Json
           past_projects?: Json
           pricing_ranges?: Json
+          referral_contacts?: Json | null
           services?: Json
           updated_at?: string
         }

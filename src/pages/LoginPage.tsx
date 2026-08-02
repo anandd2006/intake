@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { MessageSquare } from 'lucide-react'
+import { AnimateIn } from '../components/AnimateIn'
 
 export function LoginPage() {
   const { user, loading, signIn, signUp } = useAuth()
@@ -56,7 +57,7 @@ export function LoginPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="w-full max-w-sm">
+      <AnimateIn from="bottom" distance="20px" duration={400} className="w-full max-w-sm">
         {/* Logo */}
         <div className="mb-8 text-center">
           <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-primary">
@@ -159,7 +160,7 @@ export function LoginPage() {
             {isSignUp ? 'Sign in' : 'Create one'}
           </button>
         </p>
-      </div>
+      </AnimateIn>
     </div>
   )
 }

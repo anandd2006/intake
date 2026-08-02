@@ -1,22 +1,22 @@
-import { defineConfig } from 'vite'
+import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import svgr from 'vite-plugin-svgr'
 
 // Custom plugin to handle ?import&react syntax (alias to ?react)
-const svgImportPlugin = () => ({
+const svgImportPlugin = (): Plugin => ({
   name: 'svg-import-alias',
-  resolveId(id) {
+  resolveId(id: string) {
     // Transform ?import&react to ?react for vite-plugin-svgr
     if (id.includes('?import&react')) {
-      return id.replace('?import&react', '?react');
+      return id.replace('?import&react', '?react')
     }
-    return null;
+    return null
   },
-});
+})
 
 // https://vite.dev/config/
-export default defineConfig(({ command }) => ({
+export default defineConfig(() => ({
   plugins: [
     react(),
     tailwindcss(),
@@ -34,7 +34,7 @@ export default defineConfig(({ command }) => ({
     }),
   ],
   server: {
-    allowedHosts: true,
+    allowedHosts: true as const,
     host: '0.0.0.0',
     port: 5173,
     strictPort: true,

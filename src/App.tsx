@@ -8,6 +8,7 @@ import { KnowledgeBasePage } from './pages/KnowledgeBasePage'
 import { OverviewPage } from './pages/OverviewPage'
 import { LeadsListPage } from './pages/LeadsListPage'
 import { LeadDetailPage } from './pages/LeadDetailPage'
+import { BriefSharePage } from './pages/BriefSharePage'
 
 export default function App() {
   return (
@@ -17,6 +18,7 @@ export default function App() {
           {/* Public routes */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/widget" element={<WidgetPage />} />
+          <Route path="/brief/:token" element={<BriefSharePage />} />
 
           {/* Protected dashboard routes */}
           <Route
