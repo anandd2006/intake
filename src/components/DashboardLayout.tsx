@@ -6,11 +6,11 @@ import {
   LogOut,
   Menu,
   X,
-  Eye,
 } from 'lucide-react'
 import { useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { AnimateIn } from './AnimateIn'
+import { WidgetPage } from '../pages/WidgetPage'
 
 const navItems = [
   { to: '/dashboard/overview', label: 'Overview', icon: LayoutDashboard },
@@ -84,18 +84,7 @@ export function DashboardLayout() {
             </NavLink>
           ))}
 
-          {/* Separator before preview link */}
-          <div className="my-2 border-t border-border" />
-
-          <NavLink
-            to="/widget"
-            onClick={() => setSidebarOpen(false)}
-            className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-foreground/70 transition-colors duration-150 hover:bg-muted hover:text-foreground"
-          >
-            <Eye className="h-4 w-4" />
-            View Chat Widget
-          </NavLink>
-        </nav>
+          </nav>
 
         {/* User footer */}
         <div className="border-t border-border px-4 py-4">
@@ -143,6 +132,9 @@ export function DashboardLayout() {
           </AnimateIn>
         </main>
       </div>
+
+      {/* Floating chat widget — testable from any dashboard page */}
+      <WidgetPage />
     </div>
   )
 }
