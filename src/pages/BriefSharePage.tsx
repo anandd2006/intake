@@ -62,43 +62,42 @@ export function BriefSharePage() {
     }
 
     const load = async () => {
-      const { data: briefData, error: briefError } = await supabase
-        .from('briefs')
-        .select('*')
-        .eq('share_token', token)
-        .maybeSingle()
+      const { data, error } = await supabase
+        .rpc('get_shared_brief', { p_token: token })
 
-      if (briefError || !briefData) {
+      if (error || !data) {
         setError('This brief could not be found. It may have been removed.')
         setLoading(false)
         return
       }
 
-      setBrief({
-        client_contact: briefData.client_contact,
-        email: briefData.email,
-        company: briefData.company,
-        website: briefData.website,
-        project_type: briefData.project_type,
-        scope_summary: briefData.scope_summary,
-        budget: briefData.budget,
-        timeline: briefData.timeline,
-        urgency: briefData.urgency,
-        enrichment: (briefData.enrichment as Enrichment | null) || null,
-        conversation_id: briefData.conversation_id,
-        created_at: briefData.created_at,
-      })
-
-      const { data: conv } = await supabase
-        .from('conversations')
-        .select('status, qualification_checks')
-        .eq('id', briefData.conversation_id)
-        .maybeSingle()
-
-      if (conv) {
-        setStatus(conv.status || 'active')
-        setChecks((conv.qualification_checks as QualificationCheck[] | null) || null)
+      // data is jsonb: { brief: {...}, status, qualification_checks }
+      const result = (data as unknown) as {
+        brief: Record<string, unknown>
+        status: string
+        qualification_checks: unknown
       }
+
+      const b = result.brief
+
+      setBrief({
+        client_contact: (b.client_contact as string) || '',
+        email: (b.email as string) || null,
+        company: (b.company as string) || null,
+        website: (b.website as string) || null,
+        project_type: (b.project_type as string) || '',
+        scope_summary: (b.scope_summary as string) || '',
+        budget: (b.budget as string) || '',
+        timeline: (b.timeline as string) || '',
+        urgency: (b.urgency as string) || '',
+        enrichment: (b.enrichment as Enrichment | null) || null,
+        conversation_id: (b.conversation_id as string) || '',
+        created_at: (b.created_at as string) || '',
+      })
+      setStatus(result.status || 'active')
+      setChecks(
+        (result.qualification_checks as QualificationCheck[] | null) || null
+      )
       setLoading(false)
     }
 

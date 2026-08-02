@@ -64,9 +64,9 @@ export function useAnimeStagger<T extends HTMLElement>(
 
     const anim = animate(entries, {
       opacity: 1,
-      translateY: from === 'bottom' ? '0px' : undefined,
-      translateX: from === 'left' || from === 'right' ? '0px' : undefined,
-      scale: from === 'scale' ? 1 : undefined,
+      ...(from === 'bottom' ? { translateY: '0px' } : {}),
+      ...(from === 'left' || from === 'right' ? { translateX: '0px' } : {}),
+      ...(from === 'scale' ? { scale: 1 } : {}),
       duration,
       easing: 'easeOutCubic',
       delay: animeStagger(staggerBy),
@@ -114,7 +114,9 @@ export function useCountUp<T extends HTMLElement>(
     })
 
     prevValue.current = target
-    return () => anim.cancel()
+    return () => {
+      anim.cancel()
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps)
 
@@ -152,15 +154,17 @@ export function useAnimeEnter<T extends HTMLElement>(
 
     const anim = animate(el, {
       opacity: 1,
-      translateY: from === 'bottom' ? '0px' : undefined,
-      scale: from === 'scale' ? 1 : undefined,
+      ...(from === 'bottom' ? { translateY: '0px' } : {}),
+      ...(from === 'scale' ? { scale: 1 } : {}),
       duration,
       easing: 'easeOutCubic',
       delay,
     })
 
     hasRun.current = true
-    return () => anim.cancel()
+    return () => {
+      anim.cancel()
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps)
 

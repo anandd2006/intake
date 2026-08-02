@@ -4,6 +4,7 @@ import { createClient } from "@supabase/supabase-js"
 // ─── Types ────────────────────────────────────────────────────────────────
 
 interface ChatRequest {
+  action?: "history" | "message" // "history" = restore conversation; default = new message
   message: string
   conversation_id: string | null // null = first message, create new conversation
   visitor_id?: string | null
@@ -103,12 +104,17 @@ ${referrals}
   If a referral contact matches the gap, suggest that exact person; otherwise decline gracefully without inventing anyone.
 - If you have enough information to classify, do so.
 - Keep responses concise but friendly. No markdown formatting.
-- At the end of your response, include a JSON block with classification, brief, qualification checks, and referral suggestion.
+- The message you write for the visitor is REQUIRED and is returned inside the "reply" field of the JSON object described below.
 
 ## Output Format
-At the end of your response, include a JSON code block like:
-\`\`\`json
-{"classification":"needs_info","brief":null,"qualification_checks":null,"referral_suggestion":null}\`\`\`
+Return ONLY one valid JSON object — no markdown, no code fences, no text before or after it. Shape:
+
+{"reply":"<your full conversational message to the visitor>","classification":"needs_info","brief":null,"qualification_checks":null,"referral_suggestion":null}
+
+- "reply" is REQUIRED: write the complete, warm, natural message the visitor will see. Never put JSON keys, field names, or instructions inside it — it must read as a normal chat message.
+- "brief": null unless classification is "qualified" (then include all brief fields).
+- "qualification_checks": REQUIRED array of the three checks whenever classification is NOT "active"; otherwise null.
+- "referral_suggestion": ONLY for "out_of_scope" when a referral matches; otherwise null.
 
 Classification options:
 - "active" — conversation is ongoing, not yet ready to classify
@@ -136,6 +142,68 @@ brief: include ALL fields when classification is "qualified":
 referral_suggestion: ONLY for "out_of_scope", pick the single best matching entry from Referral Contacts (copy name/service/contact EXACTLY as listed). null if none matches.`
 }
 
+function tryParseJson(text: string): unknown {
+  try {
+    return JSON.parse(text)
+  } catch {
+    return null
+  }
+}
+
+// Scan for the first balanced JSON object starting at startIdx (string-aware,
+// so braces inside quoted values don't confuse the depth counter).
+function findBalancedJson(
+  text: string,
+  startIdx: number
+): { json: string; start: number; end: number } | null {
+  let depth = 0
+  let inString = false
+  let escaped = false
+  for (let i = startIdx; i < text.length; i++) {
+    const ch = text[i]
+    if (inString) {
+      if (escaped) escaped = false
+      else if (ch === "\\") escaped = true
+      else if (ch === '"') inString = false
+      continue
+    }
+    if (ch === '"') {
+      inString = true
+      continue
+    }
+    if (ch === "{") depth++
+    else if (ch === "}") {
+      depth--
+      if (depth === 0) {
+        const json = text.slice(startIdx, i + 1)
+        if (tryParseJson(json)) return { json, start: startIdx, end: i + 1 }
+        return null
+      }
+    }
+  }
+  return null
+}
+
+// Remove trailing JSON artifacts (unclosed code fences, JSON blocks that
+// started with one of our known keys) so raw structured data never reaches
+// the visitor.
+function scrubJsonTail(text: string): string {
+  let cleaned = text.replace(/```(?:json)?[\s\S]*$/gi, "")
+  const idx = cleaned.search(/\{\s*"(classification|brief|qualification_checks)"/)
+  if (idx !== -1) cleaned = cleaned.slice(0, idx)
+  return cleaned
+}
+
+// Clean assistant messages stored in the DB — some older rows may contain
+// leaked JSON blocks; strip them before they're fed back to the model.
+function cleanStoredReply(content: string): string {
+  return content
+    .replace(/```(?:json)?\s*[\s\S]*?(?:```|$)/gi, "")
+    .replace(/```/g, "")
+    .replace(/\{\s*"(classification|brief|qualification_checks)"[\s\S]*$/, "")
+    .trim()
+}
+
 function parseLLMResponse(text: string): {
   reply: string
   classification: string
@@ -148,52 +216,143 @@ function parseLLMResponse(text: string): {
   let qualification_checks: QualificationCheck[] | null = null
   let referral_suggestion: ReferralContact | null = null
 
-  const jsonMatch = text.match(/```json\n([\s\S]*?)\n```/)
-  if (jsonMatch) {
-    try {
-      const parsed = JSON.parse(jsonMatch[1])
-      classification = parsed.classification || "active"
+  const apply = (parsed: any) => {
+    if (parsed && typeof parsed.classification === "string") {
+      classification = parsed.classification
+    }
 
-      if (parsed.brief && parsed.brief.project_type) {
-        brief = {
-          client_contact: parsed.brief.client_contact || "",
-          email: parsed.brief.email || "",
-          company: parsed.brief.company || "",
-          website: parsed.brief.website || "",
-          project_type: parsed.brief.project_type || "",
-          scope_summary: parsed.brief.scope_summary || "",
-          budget: parsed.brief.budget || "",
-          timeline: parsed.brief.timeline || "",
-          urgency: parsed.brief.urgency || "",
-        }
+    if (parsed?.brief && typeof parsed.brief === "object" && parsed.brief.project_type) {
+      brief = {
+        client_contact: parsed.brief.client_contact || "",
+        email: parsed.brief.email || "",
+        company: parsed.brief.company || "",
+        website: parsed.brief.website || "",
+        project_type: parsed.brief.project_type || "",
+        scope_summary: parsed.brief.scope_summary || "",
+        budget: parsed.brief.budget || "",
+        timeline: parsed.brief.timeline || "",
+        urgency: parsed.brief.urgency || "",
       }
+    }
 
-      if (Array.isArray(parsed.qualification_checks) && parsed.qualification_checks.length > 0) {
-        qualification_checks = parsed.qualification_checks
-          .filter(
-            (c: QualificationCheck) =>
-              c && typeof c.check_name === "string" && typeof c.detail === "string"
-          )
-          .map((c: QualificationCheck) => ({
-            check_name: c.check_name,
-            result: ["pass", "fail", "partial"].includes(c.result) ? c.result : "partial",
-            detail: c.detail,
-          }))
-      }
+    if (
+      Array.isArray(parsed?.qualification_checks) &&
+      parsed.qualification_checks.length > 0
+    ) {
+      qualification_checks = parsed.qualification_checks
+        .filter(
+          (c: QualificationCheck) =>
+            c && typeof c.check_name === "string" && typeof c.detail === "string"
+        )
+        .map((c: QualificationCheck) => ({
+          check_name: c.check_name,
+          result: ["pass", "fail", "partial"].includes(c.result) ? c.result : "partial",
+          detail: c.detail,
+        }))
+    }
 
-      if (parsed.referral_suggestion && parsed.referral_suggestion.name) {
-        referral_suggestion = {
-          name: parsed.referral_suggestion.name,
-          service: parsed.referral_suggestion.service || "",
-          contact: parsed.referral_suggestion.contact || "",
-        }
+    if (parsed?.referral_suggestion && parsed.referral_suggestion.name) {
+      referral_suggestion = {
+        name: parsed.referral_suggestion.name,
+        service: parsed.referral_suggestion.service || "",
+        contact: parsed.referral_suggestion.contact || "",
       }
-    } catch {
-      // Invalid JSON, ignore
     }
   }
 
-  const reply = text.replace(/```json\n[\s\S]*?\n```/, "").trim()
+  const raw = text || ""
+
+  // ── Case 1: the whole response is one JSON object with a "reply" field
+  // (structured output mode) — nothing to leak, return the reply directly.
+  const whole = tryParseJson(raw.trim())
+  if (
+    whole &&
+    typeof whole === "object" &&
+    !Array.isArray(whole) &&
+    typeof (whole as any).reply === "string"
+  ) {
+    apply(whole)
+    const reply = ((whole as any).reply as string).trim()
+    return { reply, classification, brief, qualification_checks, referral_suggestion }
+  }
+
+  // ── Case 2: conversational text with a trailing JSON block (legacy format).
+  // Tolerate fences with/without newlines, unclosed fences, and no fence at all.
+  const fenced = raw.match(/```(?:json)?\s*([\s\S]*?)\s*```/i)
+  const jsonSource = fenced ? fenced[1] : raw
+
+  let parsed: any = null
+  let jsonStart = -1
+  let jsonEnd = -1
+  for (let i = 0; i < jsonSource.length; i++) {
+    if (jsonSource[i] !== "{") continue
+    const found = findBalancedJson(jsonSource, i)
+    if (!found) continue
+    try {
+      const candidate = JSON.parse(found.json)
+      if (
+        candidate &&
+        typeof candidate === "object" &&
+        !Array.isArray(candidate) &&
+        ("classification" in candidate ||
+          "brief" in candidate ||
+          "qualification_checks" in candidate)
+      ) {
+        parsed = candidate
+        jsonStart = found.start
+        jsonEnd = found.end
+        break
+      }
+    } catch {
+      // keep scanning for a valid block
+    }
+  }
+
+  if (parsed) apply(parsed)
+
+  // ── Fallback: last-resort greedy regex for a JSON object (no fences, no
+  // recognized keys, or braces buried in prose) before giving up. ──
+  if (!parsed) {
+    const greedy = raw.match(/\{[\s\S]*\}/)
+    if (greedy) {
+      try {
+        const candidate = JSON.parse(greedy[0])
+        if (candidate && typeof candidate === "object" && !Array.isArray(candidate)) {
+          parsed = candidate
+          apply(parsed)
+        }
+      } catch {
+        // not valid JSON — ignore
+      }
+    }
+  }
+
+  // Surface silent parse failures server-side (visible in Edge Function logs)
+  // so a drifting LLM output format never fails a live demo invisibly.
+  if (!parsed) {
+    console.warn(
+      "[chat] LLM response could not be parsed as structured output; " +
+        `falling back to conversational reply. Snippet: ${raw.slice(0, 200)}`
+    )
+  }
+
+  // ── Build the visitor-facing reply, guaranteeing no JSON leaks through ──
+  let reply = raw
+  if (fenced) {
+    reply = raw.replace(/```(?:json)?\s*[\s\S]*?\s*```/gi, "")
+  } else if (jsonStart >= 0 && jsonEnd > jsonStart) {
+    reply = (jsonSource.slice(0, jsonStart) + jsonSource.slice(jsonEnd)).trim()
+  } else {
+    reply = scrubJsonTail(raw)
+  }
+  reply = reply.replace(/```(?:json)?/gi, "").replace(/```/g, "").trim()
+
+  if (!reply && parsed && typeof parsed.reply === "string") {
+    reply = parsed.reply.trim()
+  }
+  if (!reply) {
+    reply = "Thanks for your message! I'm reviewing the details and will be in touch shortly."
+  }
 
   return { reply, classification, brief, qualification_checks, referral_suggestion }
 }
@@ -222,7 +381,7 @@ async function geminiChat(params: {
     model,
     systemPrompt = "",
     messages,
-    maxOutputTokens = 1200,
+    maxOutputTokens = 1600,
     temperature = 0.7,
     responseMimeType,
   } = params
@@ -240,7 +399,7 @@ async function geminiChat(params: {
       parts: [{ text: m.content }],
     }))
 
-  const body: Record<string, unknown> = {
+  const baseBody: Record<string, unknown> = {
     contents,
     generationConfig: {
       temperature,
@@ -249,45 +408,54 @@ async function geminiChat(params: {
   }
 
   if (systemPrompt) {
-    body.system_instruction = { parts: [{ text: systemPrompt }] }
-  }
-
-  if (responseMimeType) {
-    (body.generationConfig as Record<string, unknown>).responseMimeType = responseMimeType
+    baseBody.system_instruction = { parts: [{ text: systemPrompt }] }
   }
 
   let lastError: Error | null = null
 
   for (const candidate of candidates) {
-    const url =
-      `https://generativelanguage.googleapis.com/v1beta/models/${candidate}:generateContent?key=${apiKey}`
+    // Try with structured output (JSON mode) first; on 400 (unsupported)
+    // retry this candidate without responseMimeType before moving to next.
+    const mimeAttempts = responseMimeType ? [responseMimeType, undefined] : [undefined]
 
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    })
+    for (const mime of mimeAttempts) {
+      const body: Record<string, unknown> = { ...baseBody }
+      if (mime) {
+        (body.generationConfig as Record<string, unknown>).responseMimeType = mime
+      }
 
-    if (res.ok) {
-      const data = await res.json()
-      const text =
-        data.candidates?.[0]?.content?.parts
-          ?.map((p: { text?: string }) => p.text || "")
-          .join("") || ""
+      const url =
+        `https://generativelanguage.googleapis.com/v1beta/models/${candidate}:generateContent?key=${apiKey}`
 
-      if (text) return text
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      })
 
-      const finishReason = data.candidates?.[0]?.finishReason || "UNKNOWN"
-      lastError = new Error(`Gemini returned empty response (finishReason: ${finishReason})`)
-      continue
-    }
+      if (res.ok) {
+        const data = await res.json()
+        const text =
+          data.candidates?.[0]?.content?.parts
+            ?.map((p: { text?: string }) => p.text || "")
+            .join("") || ""
 
-    const errText = await res.text()
-    lastError = new Error(`Gemini API error (${res.status}): ${errText}`)
+        if (text) return text
 
-    // Only retry on availability / deprecation errors; fail fast on 400s.
-    if (![404, 429, 503].includes(res.status)) {
-      throw lastError
+        const finishReason = data.candidates?.[0]?.finishReason || "UNKNOWN"
+        lastError = new Error(`Gemini returned empty response (finishReason: ${finishReason})`)
+        continue
+      }
+
+      const errText = await res.text()
+      lastError = new Error(`Gemini API error (${res.status}): ${errText}`)
+
+      // 400 when mime was set means the model doesn't support JSON mode —
+      // retry this candidate without it.
+      if (res.status === 400 && mime) continue
+      // Only retry on availability / deprecation errors; fail fast on other 4xx/5xx.
+      if (![404, 429, 503].includes(res.status)) throw lastError
+      break
     }
   }
 
@@ -307,7 +475,9 @@ function guessTargetUrl(brief: BriefData): string | null {
     const domain = brief.email.split("@")[1].toLowerCase()
     if (domain && !PERSONAL_EMAIL_DOMAINS.has(domain)) target = domain
   }
-  if (!target && brief.company) {
+  // Only guess from company name when explicitly opted in. Guessing
+  // {company-name}.com can enrich against an unrelated real company.
+  if (!target && Deno.env.get("ENRICHMENT_GUESS_DOMAIN") === "true" && brief.company) {
     const slug = brief.company.toLowerCase().replace(/[^a-z0-9]/g, "")
     if (slug.length >= 4) target = `${slug}.com`
   }
@@ -457,7 +627,71 @@ Deno.serve(async (req: Request) => {
 
   try {
     const body: ChatRequest = await req.json()
-    const { message, conversation_id, visitor_id } = body
+    const { action, message, conversation_id, visitor_id } = body
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    const supabase = createClient(supabaseUrl, supabaseKey)
+
+    // ── History restore (widget): returns messages + status + brief for a
+    // conversation the visitor already owns. Validates visitor_id server-side. ──
+    if (action === "history") {
+      if (!conversation_id) {
+        return new Response(
+          JSON.stringify({ error: "Missing conversation_id" }),
+          { status: 400, headers }
+        )
+      }
+
+      const { data: conv, error: convError } = await supabase
+        .from("conversations")
+        .select("*")
+        .eq("id", conversation_id)
+        .maybeSingle()
+
+      if (convError || !conv) {
+        return new Response(
+          JSON.stringify({ error: "Conversation not found" }),
+          { status: 404, headers }
+        )
+      }
+
+      // The visitor_id in localStorage acts as the ownership capability —
+      // reject mismatches so another visitor can't read this conversation.
+      if (visitor_id && conv.visitor_id !== visitor_id) {
+        return new Response(
+          JSON.stringify({ error: "Conversation not found" }),
+          { status: 404, headers }
+        )
+      }
+
+      const { data: msgs } = await supabase
+        .from("messages")
+        .select("role, content, created_at")
+        .eq("conversation_id", conversation_id)
+        .order("created_at", { ascending: true })
+
+      const { data: brief } = await supabase
+        .from("briefs")
+        .select("*")
+        .eq("conversation_id", conversation_id)
+        .maybeSingle()
+
+      return new Response(
+        JSON.stringify({
+          conversation_id,
+          status: conv.status,
+          messages: (msgs || []).map((m: any) => ({
+            role: m.role,
+            content: m.role === "assistant" ? cleanStoredReply(m.content) : m.content,
+            created_at: m.created_at,
+          })),
+          brief: brief || null,
+          enrichment: (brief as any)?.enrichment || null,
+        }),
+        { headers }
+      )
+    }
 
     if (!message || typeof message !== "string") {
       return new Response(JSON.stringify({ error: "Missing 'message' field" }), {
@@ -465,10 +699,6 @@ Deno.serve(async (req: Request) => {
         headers,
       })
     }
-
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    const supabase = createClient(supabaseUrl, supabaseKey)
 
     const { data: kbData, error: kbError } = await supabase
       .from("knowledge_base")
@@ -520,7 +750,7 @@ Deno.serve(async (req: Request) => {
       { role: "system", content: systemPrompt },
       ...existingMessages.map((m) => ({
         role: m.role === "system" ? "assistant" : m.role,
-        content: m.content,
+        content: m.role === "assistant" ? cleanStoredReply(m.content) : m.content,
       })),
       { role: "user", content: message },
     ]
@@ -558,6 +788,7 @@ Deno.serve(async (req: Request) => {
       model: geminiModel,
       systemPrompt,
       messages: llmMessages,
+      responseMimeType: "application/json",
     })
 
     const { reply, classification, brief, qualification_checks, referral_suggestion } =

@@ -44,14 +44,16 @@ export function AnimateIn({
 
     const anim = animate(el, {
       opacity: 1,
-      translateY: from === 'bottom' ? '0px' : undefined,
-      scale: from === 'scale' ? 1 : undefined,
+      ...(from === 'bottom' ? { translateY: '0px' } : {}),
+      ...(from === 'scale' ? { scale: 1 } : {}),
       duration,
       easing: 'easeOutCubic',
       delay,
     })
 
-    return () => anim.cancel()
+    return () => {
+      anim.cancel()
+    }
   }, [duration, from, distance, delay])
 
   return (

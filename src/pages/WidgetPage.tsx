@@ -17,7 +17,6 @@ import {
   Clock,
   ExternalLink,
 } from 'lucide-react'
-import { supabase } from '../lib/supabase'
 import { EDGE_FUNCTION_URL, STORAGE_KEYS } from '../lib/constants'
 import { useSpeechInput } from '../hooks/useSpeechInput'
 import { EnrichmentCard } from '../components/EnrichmentCard'
@@ -123,6 +122,8 @@ export function WidgetPage() {
     useSpeechInput(handleTranscript)
 
   // ── Restore conversation on mount ──
+  // Reads go through the Edge Function (action: "history"), which validates
+  // visitor_id ownership server-side — the anon key has no direct table access.
 
   useEffect(() => {
     const storedConvId = getStoredConversationId()
@@ -133,51 +134,50 @@ export function WidgetPage() {
 
     ;(async () => {
       try {
-        const { data, error } = await supabase
-          .from('messages')
-          .select('role, content, created_at')
-          .eq('conversation_id', storedConvId)
-          .order('created_at', { ascending: true })
+        const response = await fetch(EDGE_FUNCTION_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'history',
+            conversation_id: storedConvId,
+            visitor_id: visitorIdRef.current,
+          }),
+        })
 
-        if (!error && data && data.length > 0) {
-          const restored: ChatMessage[] = data.map((m, i) => ({
-            id: `restored-${i}`,
-            role: m.role as 'user' | 'assistant',
-            content: m.content,
-          }))
+        if (!response.ok) throw new Error('history restore failed')
+
+        const data = await response.json()
+
+        if (data && Array.isArray(data.messages) && data.messages.length > 0) {
+          const restored: ChatMessage[] = data.messages.map(
+            (m: { role: string; content: string }, i: number) => ({
+              id: `restored-${i}`,
+              role: m.role as 'user' | 'assistant',
+              content: m.content,
+            })
+          )
           setMessages((prev) => [prev[0], ...restored])
 
           // Restore conversation status + brief + enrichment
-          const { data: convData } = await supabase
-            .from('conversations')
-            .select('status')
-            .eq('id', storedConvId)
-            .single()
-
-          if (convData && convData.status !== 'active') {
-            const n = classificationNotice(convData.status)
+          if (data.status && data.status !== 'active') {
+            const n = classificationNotice(data.status)
             if (n) setNotice(n)
           }
 
-          const { data: briefData } = await supabase
-            .from('briefs')
-            .select('*')
-            .eq('conversation_id', storedConvId)
-            .maybeSingle()
-
-          if (briefData) {
+          if (data.brief) {
+            const b = data.brief
             setBriefPanel({
-              client_contact: briefData.client_contact || '',
-              email: briefData.email || '',
-              company: briefData.company || '',
-              website: briefData.website || '',
-              project_type: briefData.project_type || '',
-              scope_summary: briefData.scope_summary || '',
-              budget: briefData.budget || '',
-              timeline: briefData.timeline || '',
-              urgency: briefData.urgency || '',
+              client_contact: b.client_contact || '',
+              email: b.email || '',
+              company: b.company || '',
+              website: b.website || '',
+              project_type: b.project_type || '',
+              scope_summary: b.scope_summary || '',
+              budget: b.budget || '',
+              timeline: b.timeline || '',
+              urgency: b.urgency || '',
             })
-            setEnrichment((briefData.enrichment as Enrichment | null) || null)
+            setEnrichment((data.enrichment as Enrichment | null) || null)
           }
         } else {
           // No messages found — start fresh
@@ -213,7 +213,9 @@ export function WidgetPage() {
       duration: 260,
       easing: 'easeOutCubic',
     })
-    return () => anim.cancel()
+    return () => {
+      anim.cancel()
+    }
   }, [messages, restoring, isOpen])
 
   // ── Send message ──
