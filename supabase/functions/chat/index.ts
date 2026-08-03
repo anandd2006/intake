@@ -104,42 +104,19 @@ ${referrals}
   If a referral contact matches the gap, suggest that exact person; otherwise decline gracefully without inventing anyone.
 - If you have enough information to classify, do so.
 - Keep responses concise but friendly. No markdown formatting.
-- The message you write for the visitor is REQUIRED and is returned inside the "reply" field of the JSON object described below.
 
-## Output Format
-Return ONLY one valid JSON object — no markdown, no code fences, no text before or after it. Shape:
+## Output Structure
+Respond with this exact JSON structure:
 
-{"reply":"<your full conversational message to the visitor>","classification":"needs_info","brief":null,"qualification_checks":null,"referral_suggestion":null}
+{"reply":"Your natural message to the visitor here","classification":"needs_info","brief":null,"qualification_checks":null,"referral_suggestion":null}
 
-- "reply" is REQUIRED: write the complete, warm, natural message the visitor will see. Never put JSON keys, field names, or instructions inside it — it must read as a normal chat message.
-- "brief": null unless classification is "qualified" (then include all brief fields).
-- "qualification_checks": REQUIRED array of the three checks whenever classification is NOT "active"; otherwise null.
-- "referral_suggestion": ONLY for "out_of_scope" when a referral matches; otherwise null.
-
-Classification options:
-- "active" — conversation is ongoing, not yet ready to classify
-- "qualified" — project is in scope, budget and timeline mentioned, ready for follow-up
-- "needs_info" — project seems in scope but need more details (budget, timeline, contact info)
-- "out_of_scope" — service not offered or budget clearly below minimum
-
-qualification_checks: REQUIRED whenever classification is NOT "active". Array of at least:
-- {"check_name":"budget_fit","result":"pass|fail|partial","detail":"short human-readable reason, e.g. 'Budget ₹15k falls within ₹10k–25k range'"}
-- {"check_name":"timeline_fit","result":"pass|fail|partial","detail":"short reason"}
-- {"check_name":"scope_match","result":"pass|fail|partial","detail":"short reason"}
-Use "pass" (clearly fits), "fail" (clearly doesn't), or "partial" (uncertain / partially fits). Never include a check without a detail string.
-
-brief: include ALL fields when classification is "qualified":
-- client_contact: the visitor's name/email if shared
-- email: visitor's email if shared, else ""
-- company: visitor's company name if shared, else ""
-- website: visitor's website URL if shared, else ""
-- project_type: what type of project
-- scope_summary: 1-2 sentence summary of the work
-- budget: stated budget or range
-- timeline: stated timeline
-- urgency: stated urgency level
-
-referral_suggestion: ONLY for "out_of_scope", pick the single best matching entry from Referral Contacts (copy name/service/contact EXACTLY as listed). null if none matches.`
+Field rules:
+- "reply": REQUIRED. Write the complete, warm, natural message the visitor will read. Never include technical details, field names, or formatting instructions inside this text — it must read as a normal human-friendly chat message.
+- "classification": One of "active" (still gathering info), "qualified" (in scope, budget and timeline mentioned), "needs_info" (in scope but need budget/timeline/contact info), "out_of_scope" (service not offered or budget below minimum).
+- "brief": Include all brief fields when the visitor has shared enough project details — for both "qualified" and "needs_info". null if they haven't described their project yet.
+  - client_contact, email, company, website, project_type, scope_summary, budget, timeline, urgency
+- "qualification_checks": REQUIRED array of 3 checks when classification is NOT "active"; otherwise null. Each check: {"check_name":"budget_fit"|"timeline_fit"|"scope_match","result":"pass"|"fail"|"partial","detail":"human-readable reason, e.g. 'Budget ₹15k falls within ₹10k–25k range'"}. Every check must include a detail string.
+- "referral_suggestion": Only for "out_of_scope" when a referral contact matches the gap. Copy name/service/contact exactly from Referral Contacts. null if none matches.`
 }
 
 function tryParseJson(text: string): unknown {
@@ -811,11 +788,11 @@ Deno.serve(async (req: Request) => {
     }
     await supabase.from("conversations").update(convUpdate).eq("id", convId)
 
-    // ── Save brief if qualified ──
+    // ── Save brief when we have structured data (qualified or needs_info) ──
     let savedBriefId: string | null = null
     let enrichment: Enrichment | null = null
 
-    if (classification === "qualified" && brief) {
+    if (brief) {
       const { data: savedBrief } = await supabase
         .from("briefs")
         .upsert(

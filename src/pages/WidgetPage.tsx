@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import {
   MessageSquare,
+  Plus,
   X,
   Send,
   Loader2,
@@ -312,6 +313,38 @@ export function WidgetPage() {
     }
   }
 
+  // ── Start a brand-new conversation ──
+  // Clears the persisted thread so the next message opens a fresh,
+  // isolated lead thread in the dashboard.
+
+  const handleNewChat = useCallback(() => {
+    if (sending) return
+
+    // Stop any in-progress voice recording
+    if (listening) stopListening()
+
+    // 1. Clear the stored conversation_id
+    storeConversationId(null)
+    conversationIdRef.current = null
+
+    // 2. Reset chat state back to the initial greeting
+    setMessages([
+      {
+        id: 'welcome',
+        role: 'assistant',
+        content:
+          "Hi there! 👋 I'm the Intake assistant. Tell me about your project and I'll help get things started.",
+      },
+    ])
+    setInput('')
+    setNotice(null)
+    setBriefPanel(null)
+    setEnrichment(null)
+    setReferral(null)
+    prevMsgCount.current = 0
+    setRestoring(false)
+  }, [sending, listening, stopListening])
+
   // ── Render ──
 
   return (
@@ -328,13 +361,26 @@ export function WidgetPage() {
                 Intake Assistant
               </span>
             </div>
-            <button
-              onClick={() => setIsOpen(false)}
-              className="cursor-pointer rounded-md p-1 text-white/80 transition-colors duration-150 hover:text-white"
-              aria-label="Close chat"
-            >
-              <X className="h-4 w-4" aria-hidden="true" />
-            </button>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={handleNewChat}
+                disabled={sending || restoring}
+                className="inline-flex cursor-pointer items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-white/80 transition-colors duration-150 hover:bg-white/10 hover:text-white disabled:pointer-events-none disabled:opacity-40"
+                aria-label="Start a new chat"
+                title="Start a new chat"
+              >
+                <Plus className="h-3.5 w-3.5" aria-hidden="true" />
+                New Chat
+              </button>
+              <span className="h-4 w-px bg-white/20" aria-hidden="true" />
+              <button
+                onClick={() => setIsOpen(false)}
+                className="cursor-pointer rounded-md p-1 text-white/80 transition-colors duration-150 hover:text-white"
+                aria-label="Close chat"
+              >
+                <X className="h-4 w-4" aria-hidden="true" />
+              </button>
+            </div>
           </div>
 
           {/* Messages */}

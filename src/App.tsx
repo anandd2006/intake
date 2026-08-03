@@ -9,6 +9,7 @@ import { OverviewPage } from './pages/OverviewPage'
 import { LeadsListPage } from './pages/LeadsListPage'
 import { LeadDetailPage } from './pages/LeadDetailPage'
 import { BriefSharePage } from './pages/BriefSharePage'
+import { EmbedPage } from './pages/EmbedPage'
 
 export default function App() {
   return (
@@ -34,6 +35,7 @@ export default function App() {
             <Route path="leads" element={<LeadsListPage />} />
             <Route path="leads/:id" element={<LeadDetailPage />} />
             <Route path="knowledge-base" element={<KnowledgeBasePage />} />
+            <Route path="embed" element={<EmbedPage />} />
           </Route>
 
           {/* Fallback */}

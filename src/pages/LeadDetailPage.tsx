@@ -20,6 +20,7 @@ import {
 } from 'lucide-react'
 import { QualificationChecks } from '../components/QualificationChecks'
 import { EnrichmentCard } from '../components/EnrichmentCard'
+import { EmailClient } from '../components/EmailClient'
 import { useAnimeStagger } from '../hooks/useAnime'
 import type { Enrichment, QualificationCheck, ReferralContact } from '../types/features'
 
@@ -49,6 +50,7 @@ interface LeadDetail {
   status: string
   created_at: string
   updated_at: string
+  email_sent_at: string | null
   visitor_id: string
   qualification_checks: QualificationCheck[] | null
   referral: ReferralContact | null
@@ -133,6 +135,7 @@ export function LeadDetailPage() {
         status: conversation.status,
         created_at: conversation.created_at,
         updated_at: conversation.updated_at,
+        email_sent_at: conversation.email_sent_at || null,
         visitor_id: conversation.visitor_id,
         qualification_checks: (conversation.qualification_checks as QualificationCheck[] | null) || null,
         referral: (conversation.referral as ReferralContact | null) || null,
@@ -187,6 +190,10 @@ export function LeadDetailPage() {
     } catch {
       /* clipboard unavailable — ignore */
     }
+  }
+
+  const handleEmailSent = (at: string) => {
+    setLead((prev) => (prev ? { ...prev, email_sent_at: at } : null))
   }
 
   const formatDate = (dateStr: string) => {
@@ -498,6 +505,26 @@ export function LeadDetailPage() {
               </div>
             </div>
           )}
+
+          {/* Email Client — follow-up draft + send (qualified / needs_info only) */}
+          {lead.brief &&
+            lead.brief.email &&
+            (lead.status === 'qualified' || lead.status === 'needs_info') && (
+              <EmailClient
+                conversationId={lead.id}
+                brief={{
+                  client_contact: lead.brief.client_contact,
+                  email: lead.brief.email,
+                  project_type: lead.brief.project_type,
+                  scope_summary: lead.brief.scope_summary,
+                  budget: lead.brief.budget,
+                  timeline: lead.brief.timeline,
+                  urgency: lead.brief.urgency,
+                }}
+                emailSentAt={lead.email_sent_at}
+                onEmailSent={handleEmailSent}
+              />
+            )}
 
           {/* Visitor info */}
           <div className="rounded-xl border border-border bg-white p-5">

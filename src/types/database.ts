@@ -71,6 +71,7 @@ export type Database = {
       conversations: {
         Row: {
           created_at: string
+          email_sent_at: string | null
           id: string
           qualification_checks: Json | null
           referral: Json | null

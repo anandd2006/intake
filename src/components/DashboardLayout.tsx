@@ -3,6 +3,7 @@ import {
   LayoutDashboard,
   MessageSquare,
   Database,
+  Code,
   LogOut,
   Menu,
   X,
@@ -16,6 +17,7 @@ const navItems = [
   { to: '/dashboard/overview', label: 'Overview', icon: LayoutDashboard },
   { to: '/dashboard/leads', label: 'Leads', icon: MessageSquare },
   { to: '/dashboard/knowledge-base', label: 'Knowledge Base', icon: Database },
+  { to: '/dashboard/embed', label: 'Embed', icon: Code },
 ]
 
 export function DashboardLayout() {

@@ -9,6 +9,12 @@ export const EDGE_FUNCTION_URL = import.meta.env.VITE_EDGE_FUNCTION_URL ?? `${en
 /** The Supabase Edge Function URL that exchanges the Speechmatics API key for a realtime JWT. */
 export const STT_TOKEN_URL = import.meta.env.VITE_STT_TOKEN_URL ?? `${env.supabaseUrl}/functions/v1/stt-token`
 
+/** The Supabase Edge Function URL that sends follow-up emails to clients. */
+export const SEND_EMAIL_URL = import.meta.env.VITE_SEND_EMAIL_URL ?? `${env.supabaseUrl}/functions/v1/send-email`
+
+/** The Supabase Edge Function URL that generates follow-up email drafts. */
+export const EMAIL_DRAFT_URL = import.meta.env.VITE_EMAIL_DRAFT_URL ?? `${env.supabaseUrl}/functions/v1/email-draft`
+
 /** Known conversation statuses. */
 export const CONVERSATION_STATUS = {
   ACTIVE: 'active',
