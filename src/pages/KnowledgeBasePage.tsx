@@ -233,45 +233,53 @@ export function KnowledgeBasePage() {
 
       <div className="space-y-8">
         {/* Services */}
-        <TagInput
-          label="Services Offered"
-          values={services}
-          onChange={setServices}
-          placeholder="e.g. Web Design, Branding, UX Audit…"
-        />
+        <section className="rounded-xl border border-border bg-white p-6 shadow-sm">
+          <TagInput
+            label="Services Offered"
+            values={services}
+            onChange={setServices}
+            placeholder="e.g. Web Design, Branding, UX Audit…"
+          />
+        </section>
 
         {/* Pricing Ranges */}
-        <TagInput
-          label="Pricing Ranges"
-          values={pricingRanges}
-          onChange={setPricingRanges}
-          placeholder="e.g. $3k–$8k for a landing page…"
-        />
+        <section className="rounded-xl border border-border bg-white p-6 shadow-sm">
+          <TagInput
+            label="Pricing Ranges"
+            values={pricingRanges}
+            onChange={setPricingRanges}
+            placeholder="e.g. $3k–$8k for a landing page…"
+          />
+        </section>
 
         {/* Availability */}
-        <div>
-          <label className="block text-sm font-medium text-foreground/80 mb-1.5">
-            Current Availability
-          </label>
-          <textarea
-            value={availability}
-            onChange={(e) => setAvailability(e.target.value)}
-            placeholder="e.g. Starting projects in April, 2-week lead time…"
-            rows={3}
-            className="block w-full rounded-lg border border-border bg-white px-4 py-2.5 text-sm text-foreground placeholder:text-foreground/30 transition-colors duration-150 focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/20"
-          />
-        </div>
+        <section className="rounded-xl border border-border bg-white p-6 shadow-sm">
+          <div>
+            <label className="block text-sm font-medium text-foreground/80 mb-1.5">
+              Current Availability
+            </label>
+            <textarea
+              value={availability}
+              onChange={(e) => setAvailability(e.target.value)}
+              placeholder="e.g. Starting projects in April, 2-week lead time…"
+              rows={3}
+              className="block w-full rounded-lg border border-border bg-white px-4 py-2.5 text-sm text-foreground placeholder:text-foreground/30 transition-colors duration-150 focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/20"
+            />
+          </div>
+        </section>
 
         {/* Out of Scope */}
-        <TagInput
-          label="Out of Scope (Services NOT offered)"
-          values={outOfScopeRules}
-          onChange={setOutOfScopeRules}
-          placeholder="e.g. Mobile app development, SEO…"
-        />
+        <section className="rounded-xl border border-border bg-white p-6 shadow-sm">
+          <TagInput
+            label="Out of Scope (Services NOT offered)"
+            values={outOfScopeRules}
+            onChange={setOutOfScopeRules}
+            placeholder="e.g. Mobile app development, SEO…"
+          />
+        </section>
 
         {/* Past Projects */}
-        <div>
+        <section className="rounded-xl border border-border bg-white p-6 shadow-sm">
           <label className="block text-sm font-medium text-foreground/80 mb-1.5">
             Past Projects
           </label>
@@ -285,7 +293,7 @@ export function KnowledgeBasePage() {
             {pastProjects.map((project, i) => (
               <div
                 key={i}
-                className="flex items-start gap-3 rounded-lg border border-border bg-white p-3"
+                className="flex items-start gap-3 rounded-lg border border-border bg-muted/30 p-3"
               >
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-medium text-foreground">
@@ -331,10 +339,10 @@ export function KnowledgeBasePage() {
               </button>
             </div>
           </div>
-        </div>
+        </section>
 
         {/* Referral Contacts — grounded out-of-scope suggestions */}
-        <div>
+        <section className="rounded-xl border border-border bg-white p-6 shadow-sm">
           <label className="block text-sm font-medium text-foreground/80 mb-1.5">
             Referral Contacts
           </label>
@@ -418,7 +426,7 @@ export function KnowledgeBasePage() {
               </button>
             </div>
           </div>
-        </div>
+        </section>
 
         {/* Save button and status */}
         <div className="flex items-center gap-4 pt-4 border-t border-border">

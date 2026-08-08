@@ -354,7 +354,7 @@ export function WidgetPage() {
         <AnimateIn from="scale" duration={260} distance="0px">
           <div className="flex h-[560px] w-[380px] flex-col overflow-hidden rounded-2xl border border-border bg-white shadow-xl">
           {/* Header */}
-          <div className="flex items-center justify-between border-b border-border bg-primary px-4 py-3">
+          <div className="flex items-center justify-between border-b border-border bg-gradient-to-r from-primary to-[#0B5E58] px-4 py-3">
             <div className="flex items-center gap-2">
               <MessageSquare className="h-4 w-4 text-white" aria-hidden="true" />
               <span className="text-sm font-semibold text-white">
@@ -605,13 +605,21 @@ export function WidgetPage() {
 
       {/* Floating bubble */}
       {!isOpen && (
-        <button
-          onClick={() => setIsOpen(true)}
-          className="flex h-14 w-14 cursor-pointer items-center justify-center rounded-full bg-primary text-white shadow-lg transition-all duration-150 hover:scale-105 active:scale-[0.97]"
-          aria-label="Open chat"
-        >
-          <MessageSquare className="h-6 w-6" aria-hidden="true" />
-        </button>
+        <div className="relative">
+          {/* Pulsing ring */}
+          <div
+            className="absolute -inset-2 rounded-full border-2 border-primary/40 animate-ping"
+            aria-hidden="true"
+            style={{ animationDuration: '2.5s' }}
+          />
+          <button
+            onClick={() => setIsOpen(true)}
+            className="relative flex h-14 w-14 cursor-pointer items-center justify-center rounded-full bg-gradient-to-br from-primary to-[#0B5E58] text-white shadow-lg transition-all duration-150 hover:scale-110 active:scale-[0.97]"
+            aria-label="Open chat"
+          >
+            <MessageSquare className="h-6 w-6" aria-hidden="true" />
+          </button>
+        </div>
       )}
     </div>
   )

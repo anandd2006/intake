@@ -11,7 +11,6 @@ import {
 import { useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { AnimateIn } from './AnimateIn'
-import { WidgetPage } from '../pages/WidgetPage'
 
 const navItems = [
   { to: '/dashboard/overview', label: 'Overview', icon: LayoutDashboard },
@@ -48,8 +47,8 @@ export function DashboardLayout() {
       >
         {/* Logo */}
         <div className="flex h-16 items-center justify-between border-b border-border px-6">
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-sm font-bold text-white">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-[#0B5E58] text-sm font-bold text-white shadow-sm">
               I
             </div>
             <span className="font-heading text-lg font-semibold text-foreground">
@@ -58,10 +57,10 @@ export function DashboardLayout() {
           </div>
           <button
             onClick={() => setSidebarOpen(false)}
-            className="cursor-pointer rounded-md p-1 text-muted-foreground hover:bg-muted lg:hidden"
+            className="cursor-pointer rounded-md p-1.5 text-muted-foreground transition-colors duration-150 hover:bg-muted hover:text-foreground lg:hidden"
             aria-label="Close sidebar"
           >
-            <X className="h-5 w-5" />
+            <X className="h-4 w-4" />
           </button>
         </div>
 
@@ -74,28 +73,55 @@ export function DashboardLayout() {
               end={item.to === '/dashboard/overview'}
               onClick={() => setSidebarOpen(false)}
               className={({ isActive }) =>
-                `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-150 ${
+                `group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150 ${
                   isActive
                     ? 'bg-primary/10 text-primary'
                     : 'text-foreground/70 hover:bg-muted hover:text-foreground'
                 }`
               }
             >
-              <item.icon className="h-4 w-4" />
-              {item.label}
+              {({ isActive }) => (
+                <>
+                  {/* Active indicator bar */}
+                  <span
+                    className={`absolute left-0 top-1/2 h-5 w-0.5 -translate-x-1.5 -translate-y-1/2 rounded-full transition-all duration-200 ${
+                      isActive ? 'bg-primary scale-y-100' : 'scale-y-0'
+                    }`}
+                    aria-hidden="true"
+                  />
+                  <item.icon className={`h-4 w-4 transition-transform duration-150 ${
+                    isActive ? 'scale-110' : 'group-hover:scale-105'
+                  }`} />
+                  {item.label}
+                </>
+              )}
             </NavLink>
           ))}
 
-          </nav>
+          {/* Spacer */}
+          <div className="border-t border-border pt-3 mt-4" />
+
+          {/* Quick status hint */}
+          <div className="px-3 py-2">
+            <p className="text-xs text-foreground/30 font-medium uppercase tracking-wider">
+              Dashboard
+            </p>
+          </div>
+        </nav>
 
         {/* User footer */}
         <div className="border-t border-border px-4 py-4">
-          <div className="mb-3 truncate text-xs text-foreground/50">
-            {user?.email}
+          <div className="mb-3 flex items-center gap-3">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+              {user?.email?.charAt(0).toUpperCase() || 'U'}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-medium text-foreground">{user?.email}</p>
+            </div>
           </div>
           <button
             onClick={signOut}
-            className="flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-foreground/70 transition-colors duration-150 hover:bg-muted hover:text-destructive"
+            className="flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-foreground/60 transition-all duration-150 hover:bg-destructive/5 hover:text-destructive"
           >
             <LogOut className="h-4 w-4" />
             Sign out
@@ -106,21 +132,27 @@ export function DashboardLayout() {
       {/* Main content */}
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Mobile header */}
-        <header className="flex h-16 items-center gap-4 border-b border-border bg-white px-4 lg:hidden">
+        <header className="flex h-16 items-center gap-4 border-b border-border bg-white px-4 shadow-sm lg:hidden">
           <button
             onClick={() => setSidebarOpen(true)}
-            className="cursor-pointer rounded-md p-2 text-foreground/70 hover:bg-muted"
+            className="cursor-pointer rounded-md p-2 text-foreground/70 transition-colors duration-150 hover:bg-muted"
             aria-label="Open sidebar"
           >
             <Menu className="h-5 w-5" />
           </button>
-          <div className="flex items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-xs font-bold text-white">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-primary to-[#0B5E58] text-xs font-bold text-white">
               I
             </div>
             <span className="font-heading text-base font-semibold text-foreground">
               Intake
             </span>
+          </div>
+          {/* Spacer so avatar right-aligned */}
+          <div className="ml-auto flex items-center gap-2">
+            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+              {user?.email?.charAt(0).toUpperCase() || 'U'}
+            </div>
           </div>
         </header>
 
@@ -134,9 +166,6 @@ export function DashboardLayout() {
           </AnimateIn>
         </main>
       </div>
-
-      {/* Floating chat widget — testable from any dashboard page */}
-      <WidgetPage />
     </div>
   )
 }

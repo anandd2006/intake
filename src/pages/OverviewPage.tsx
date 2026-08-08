@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
-import { Loader2, Users, Target, ArrowRight, MessageSquare } from 'lucide-react'
+import { Loader2, Users, Target, ArrowRight, MessageSquare, TrendingUp, TrendingDown, Minus } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useCountUp, useAnimeStagger } from '../hooks/useAnime'
 
@@ -15,6 +15,11 @@ interface Stats {
     project_type: string | null
     client_contact: string | null
   }>
+}
+
+interface PreviousStats {
+  total: number
+  qualified: number
 }
 
 const statusConfig: Record<string, { label: string; color: string }> = {
@@ -33,8 +38,46 @@ function getMonday(d: Date): Date {
   return date
 }
 
+function getPreviousWeekRange(): { start: string; end: string } {
+  const now = new Date()
+  const thisMon = getMonday(now)
+  const prevMon = new Date(thisMon)
+  prevMon.setDate(prevMon.getDate() - 7)
+  return {
+    start: prevMon.toISOString(),
+    end: thisMon.toISOString(),
+  }
+}
+
+function TrendBadge({ current, previous, format = 'number' }: { current: number; previous: number; format?: 'number' | 'pct' }) {
+  if (previous === 0) return null
+  const diff = current - previous
+  const pct = Math.round((diff / previous) * 100)
+  if (diff === 0) {
+    return (
+      <span className="inline-flex items-center gap-0.5 rounded-full bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-500 border border-gray-200">
+        <Minus className="h-3 w-3" />
+        No change
+      </span>
+    )
+  }
+  const isUp = diff > 0
+  return (
+    <span className={`inline-flex items-center gap-0.5 rounded-full border px-2 py-0.5 text-xs font-medium ${
+      isUp
+        ? 'bg-green-50 text-green-700 border-green-200'
+        : 'bg-red-50 text-red-700 border-red-200'
+    }`}>
+      {isUp ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+      {format === 'pct' ? `${Math.abs(pct)}%` : Math.abs(diff)}
+      <span className="opacity-60">vs last week</span>
+    </span>
+  )
+}
+
 export function OverviewPage() {
   const [stats, setStats] = useState<Stats | null>(null)
+  const [previous, setPrevious] = useState<PreviousStats>({ total: 0, qualified: 0 })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -74,6 +117,19 @@ export function OverviewPage() {
       const qualifiedRate = totalThisWeek > 0
         ? Math.round((qualifiedCount / totalThisWeek) * 100)
         : 0
+
+      // Fetch previous week for trend comparison
+      const { start: prevStart, end: prevEnd } = getPreviousWeekRange()
+      const { data: prevConversations } = await supabase
+        .from('conversations')
+        .select('status')
+        .gte('created_at', prevStart)
+        .lt('created_at', prevEnd)
+
+      setPrevious({
+        total: prevConversations?.length || 0,
+        qualified: prevConversations?.filter((c) => c.status === 'qualified').length || 0,
+      })
 
       // Fetch recent briefs for activity display
       const { data: briefs } = await supabase
@@ -144,38 +200,57 @@ export function OverviewPage() {
       )}
 
       {/* Metric Cards */}
-      <div className="mb-8 grid gap-4 sm:grid-cols-2">
-        <div className="rounded-xl border border-border bg-white p-5">
-          <div className="flex items-center justify-between">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-              <Users className="h-5 w-5" />
+      <div className="mb-8 grid gap-5 sm:grid-cols-2">
+        {/* Total Leads card */}
+        <div className="group relative overflow-hidden rounded-xl border border-border bg-white p-6 transition-all duration-150 hover:shadow-md">
+          {/* Decorative gradient */}
+          <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-primary/[0.06] transition-transform duration-300 group-hover:scale-150" aria-hidden="true" />
+          <div className="relative">
+            <div className="flex items-center justify-between">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <Users className="h-5 w-5" />
+              </div>
             </div>
-          </div>
-          <div className="mt-4">
-            <div ref={totalRef} className="text-3xl font-semibold text-foreground">
-              {stats?.totalThisWeek ?? 0}
-            </div>
-            <div className="mt-1 text-sm text-foreground/60">
-              Total Leads This Week
+            <div className="mt-4">
+              <div ref={totalRef} className="font-heading text-3xl font-bold text-foreground">
+                {stats?.totalThisWeek ?? 0}
+              </div>
+              <div className="mt-1 text-sm text-foreground/60">
+                Total Leads This Week
+              </div>
+              {previous.total > 0 && (
+                <div className="mt-2">
+                  <TrendBadge current={stats?.totalThisWeek ?? 0} previous={previous.total} />
+                </div>
+              )}
             </div>
           </div>
         </div>
 
-        <div className="rounded-xl border border-border bg-white p-5">
-          <div className="flex items-center justify-between">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-50 text-green-600">
-              <Target className="h-5 w-5" />
+        {/* Qualified Rate card */}
+        <div className="group relative overflow-hidden rounded-xl border border-border bg-white p-6 transition-all duration-150 hover:shadow-md">
+          <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-green-500/[0.06] transition-transform duration-300 group-hover:scale-150" aria-hidden="true" />
+          <div className="relative">
+            <div className="flex items-center justify-between">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-50 text-green-600">
+                <Target className="h-5 w-5" />
+              </div>
             </div>
-          </div>
-          <div className="mt-4">
-            <div ref={rateRef} className="text-3xl font-semibold text-foreground">
-              {stats?.qualifiedRate ?? 0}%
-            </div>
-            <div className="mt-1 text-sm text-foreground/60">
-              Qualified Rate{' '}
-              <span className="text-foreground/40">
-                ({stats?.qualifiedCount ?? 0} / {stats?.totalThisWeek ?? 0})
-              </span>
+            <div className="mt-4">
+              <div ref={rateRef} className="font-heading text-3xl font-bold text-foreground">
+                {stats?.qualifiedRate ?? 0}%
+              </div>
+              <div className="mt-1 text-sm text-foreground/60">
+                Qualified Rate{' '}
+                <span className="text-foreground/40">
+                  ({stats?.qualifiedCount ?? 0} / {stats?.totalThisWeek ?? 0})
+                </span>
+              </div>
+              {previous.qualified > 0 && (
+                <div className="mt-2">
+                  <TrendBadge current={stats?.qualifiedCount ?? 0} previous={previous.qualified} />
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -207,7 +282,7 @@ export function OverviewPage() {
             </p>
           </div>
         ) : (
-          <div ref={activityRef} className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-white">
+          <div ref={activityRef} className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-white shadow-sm">
             {stats?.recentActivity.map((item) => {
               const config = statusConfig[item.status] || statusConfig.active
               const date = new Date(item.created_at)
@@ -222,7 +297,7 @@ export function OverviewPage() {
                 <Link
                   key={item.id}
                   to={`/dashboard/leads/${item.id}`}
-                  className="flex cursor-pointer items-center gap-4 px-5 py-3.5 transition-colors duration-150 hover:bg-muted/50"
+                  className="flex cursor-pointer items-center gap-4 px-5 py-3.5 transition-all duration-150 hover:bg-muted/50"
                 >
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">

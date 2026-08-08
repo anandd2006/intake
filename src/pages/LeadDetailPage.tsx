@@ -328,13 +328,19 @@ export function LeadDetailPage() {
                 lead.messages.map((msg) => (
                   <div
                     key={msg.id}
-                    className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                    className={`flex items-end gap-2.5 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                   >
+                    {/* Avatar for assistant */}
+                    {msg.role === 'assistant' && (
+                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary shadow-sm">
+                        AI
+                      </div>
+                    )}
                     <div
-                      className={`max-w-[85%] rounded-xl px-4 py-2.5 text-sm leading-relaxed ${
+                      className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
                         msg.role === 'user'
-                          ? 'bg-primary text-white'
-                          : 'bg-muted text-foreground'
+                          ? 'bg-primary text-white rounded-br-md'
+                          : 'bg-muted text-foreground rounded-bl-md'
                       }`}
                     >
                       <p className="whitespace-pre-wrap">{msg.content}</p>
@@ -349,6 +355,12 @@ export function LeadDetailPage() {
                         })}
                       </p>
                     </div>
+                    {/* Avatar for user */}
+                    {msg.role === 'user' && (
+                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-foreground/10 text-xs font-semibold text-foreground/60 shadow-sm">
+                        U
+                      </div>
+                    )}
                   </div>
                 ))
               )}
