@@ -21,7 +21,7 @@ export type Database = {
           id: string
           project_type: string
           scope_summary: string
-          share_token: string
+          share_token: string | null
           timeline: string
           urgency: string
           website: string | null
@@ -37,7 +37,7 @@ export type Database = {
           id?: string
           project_type?: string
           scope_summary?: string
-          share_token?: string
+          share_token?: string | null
           timeline?: string
           urgency?: string
           website?: string | null
@@ -53,7 +53,7 @@ export type Database = {
           id?: string
           project_type?: string
           scope_summary?: string
-          share_token?: string
+          share_token?: string | null
           timeline?: string
           urgency?: string
           website?: string | null
@@ -81,6 +81,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          email_sent_at?: string | null
           id?: string
           qualification_checks?: Json | null
           referral?: Json | null
@@ -90,6 +91,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          email_sent_at?: string | null
           id?: string
           qualification_checks?: Json | null
           referral?: Json | null
@@ -103,34 +105,40 @@ export type Database = {
         Row: {
           availability: string
           created_at: string
+          display_name: string
           id: string
           out_of_scope_rules: Json
           past_projects: Json
           pricing_ranges: Json
           referral_contacts: Json | null
           services: Json
+          tagline: string
           updated_at: string
         }
         Insert: {
           availability?: string
           created_at?: string
+          display_name?: string
           id?: string
           out_of_scope_rules?: Json
           past_projects?: Json
           pricing_ranges?: Json
           referral_contacts?: Json | null
           services?: Json
+          tagline?: string
           updated_at?: string
         }
         Update: {
           availability?: string
           created_at?: string
+          display_name?: string
           id?: string
           out_of_scope_rules?: Json
           past_projects?: Json
           pricing_ranges?: Json
           referral_contacts?: Json | null
           services?: Json
+          tagline?: string
           updated_at?: string
         }
         Relationships: []
@@ -172,12 +180,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      get_shared_brief: {
-        Args: {
-          p_token: string
-        }
-        Returns: Json
-      }
+      get_shared_brief: { Args: { p_token: string }; Returns: Json }
+      get_widget_config: { Args: never; Returns: Json }
     }
     Enums: {
       [_ in never]: never

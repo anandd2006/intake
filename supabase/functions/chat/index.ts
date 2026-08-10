@@ -18,6 +18,8 @@ interface KnowledgeBaseRow {
   out_of_scope_rules: string[]
   past_projects: string[]
   referral_contacts?: ReferralContact[]
+  display_name?: string
+  tagline?: string
 }
 
 interface ReferralContact {
@@ -68,11 +70,12 @@ interface MessageRow {
 // ─── Helpers ──────────────────────────────────────────────────────────────
 
 function buildSystemPrompt(kb: KnowledgeBaseRow): string {
+  const agentName = (kb.display_name || "").trim() || "Intake Assistant"
   const referrals = Array.isArray(kb.referral_contacts) && kb.referral_contacts.length > 0
     ? kb.referral_contacts.map((r) => `- ${r.name} — ${r.service} (${r.contact})`).join("\n")
     : "None configured. If a project is out of scope, say you don't have a specific referral right now — never invent one."
 
-  return `You are the Intake Assistant — an AI client intake copilot for a freelance designer/developer.
+  return `You are ${agentName} — an AI client intake copilot for a freelance designer/developer.
 
 Your job is to have a natural conversation with a potential client, understand their project, and determine if they're a good fit.
 

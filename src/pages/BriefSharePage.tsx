@@ -136,15 +136,15 @@ export function BriefSharePage() {
       <div className="mx-auto max-w-2xl px-4 sm:px-6">
         {/* Card header */}
         <div className="overflow-hidden rounded-2xl border border-border bg-white shadow-sm">
-          <div className="border-b border-border bg-primary px-6 py-5">
+          <div className="border-b border-border bg-foreground px-6 py-5">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2.5">
-                <Sparkles className="h-5 w-5 text-white" aria-hidden="true" />
+                <Sparkles className="h-5 w-5 text-primary" aria-hidden="true" />
                 <div>
                   <h1 className="font-heading text-lg font-semibold text-white">
                     Project Brief
                   </h1>
-                  <p className="text-xs text-white/70">
+                  <p className="text-xs text-white/60">
                     {new Date(brief.created_at).toLocaleDateString('en-US', {
                       month: 'long',
                       day: 'numeric',
@@ -153,9 +153,7 @@ export function BriefSharePage() {
                   </p>
                 </div>
               </div>
-              <span
-                className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${config.color}`}
-              >
+              <span className="inline-flex items-center rounded-full border border-white/20 bg-white/10 px-2.5 py-0.5 font-mono text-xs font-semibold uppercase tracking-wider text-white">
                 {config.label}
               </span>
             </div>

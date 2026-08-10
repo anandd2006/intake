@@ -1,8 +1,16 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
-import { Loader2, Users, Target, ArrowRight, MessageSquare, TrendingUp, TrendingDown, Minus } from 'lucide-react'
+import {
+  Users,
+  Target,
+  ArrowRight,
+  MessageSquare,
+  TrendingUp,
+  TrendingDown,
+  Minus,
+} from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { useCountUp, useAnimeStagger } from '../hooks/useAnime'
+import { useCountUp } from '../hooks/useAnime'
 
 interface Stats {
   totalThisWeek: number
@@ -22,11 +30,11 @@ interface PreviousStats {
   qualified: number
 }
 
-const statusConfig: Record<string, { label: string; color: string }> = {
-  qualified: { label: 'Qualified', color: 'text-green-600 bg-green-50 border-green-200' },
-  needs_info: { label: 'Needs Info', color: 'text-amber-600 bg-amber-50 border-amber-200' },
-  out_of_scope: { label: 'Out of Scope', color: 'text-gray-500 bg-gray-50 border-gray-200' },
-  active: { label: 'In Progress', color: 'text-blue-600 bg-blue-50 border-blue-200' },
+const statusConfig: Record<string, { label: string; text: string }> = {
+  qualified: { label: 'Qualified', text: 'text-emerald-600' },
+  needs_info: { label: 'Needs Info', text: 'text-amber-600' },
+  out_of_scope: { label: 'Out of Scope', text: 'text-foreground/50' },
+  active: { label: 'In Progress', text: 'text-primary' },
 }
 
 function getMonday(d: Date): Date {
@@ -55,7 +63,7 @@ function TrendBadge({ current, previous, format = 'number' }: { current: number;
   const pct = Math.round((diff / previous) * 100)
   if (diff === 0) {
     return (
-      <span className="inline-flex items-center gap-0.5 rounded-full bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-500 border border-gray-200">
+      <span className="inline-flex items-center gap-0.5 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-foreground/40 border border-border">
         <Minus className="h-3 w-3" />
         No change
       </span>
@@ -65,13 +73,23 @@ function TrendBadge({ current, previous, format = 'number' }: { current: number;
   return (
     <span className={`inline-flex items-center gap-0.5 rounded-full border px-2 py-0.5 text-xs font-medium ${
       isUp
-        ? 'bg-green-50 text-green-700 border-green-200'
+        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
         : 'bg-red-50 text-red-700 border-red-200'
     }`}>
       {isUp ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
       {format === 'pct' ? `${Math.abs(pct)}%` : Math.abs(diff)}
-      <span className="opacity-60">vs last week</span>
+      <span className="opacity-60"> vs last week</span>
     </span>
+  )
+}
+
+function StatSkeleton() {
+  return (
+    <div className="rounded-xl border border-border bg-white p-6">
+      <div className="skeleton mb-4 h-10 w-10 rounded-lg" />
+      <div className="skeleton mb-1 h-9 w-20" />
+      <div className="skeleton mb-3 h-4 w-32" />
+    </div>
   )
 }
 
@@ -81,17 +99,12 @@ export function OverviewPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // anime.js — count-up on stat cards once data arrives
   const totalRef = useCountUp<HTMLDivElement>(stats?.totalThisWeek ?? 0, [stats?.totalThisWeek], 600)
   const rateRef = useCountUp<HTMLDivElement>(stats?.qualifiedRate ?? 0, [stats?.qualifiedRate], 600)
-  // Staggered entrance for recent activity rows (one-shot after load)
-  const activityRef = useAnimeStagger<HTMLDivElement>(
-    [loading, stats?.recentActivity?.length ?? 0],
-    { staggerBy: 45, duration: 320, from: 'fade' }
-  )
 
   useEffect(() => {
     loadStats()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const loadStats = async () => {
@@ -101,7 +114,6 @@ export function OverviewPage() {
     try {
       const monday = getMonday(new Date()).toISOString()
 
-      // Fetch conversations created this week
       const { data: weeklyConversations, error: convError } = await supabase
         .from('conversations')
         .select('id, status, created_at, visitor_id')
@@ -118,7 +130,6 @@ export function OverviewPage() {
         ? Math.round((qualifiedCount / totalThisWeek) * 100)
         : 0
 
-      // Fetch previous week for trend comparison
       const { start: prevStart, end: prevEnd } = getPreviousWeekRange()
       const { data: prevConversations } = await supabase
         .from('conversations')
@@ -131,7 +142,6 @@ export function OverviewPage() {
         qualified: prevConversations?.filter((c) => c.status === 'qualified').length || 0,
       })
 
-      // Fetch recent briefs for activity display
       const { data: briefs } = await supabase
         .from('briefs')
         .select('conversation_id, client_contact, project_type')
@@ -140,7 +150,6 @@ export function OverviewPage() {
         (briefs || []).map((b) => [b.conversation_id, b])
       )
 
-      // Fetch all conversations for recent activity (limit 10)
       const { data: recentData, error: recentError } = await supabase
         .from('conversations')
         .select('id, status, created_at')
@@ -173,16 +182,8 @@ export function OverviewPage() {
     }
   }
 
-  if (loading) {
-    return (
-      <div className="flex h-full items-center justify-center p-8">
-        <Loader2 className="h-6 w-6 animate-spin text-primary" />
-      </div>
-    )
-  }
-
   return (
-    <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
+    <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
       {/* Header */}
       <div className="mb-8">
         <h1 className="font-heading text-2xl font-semibold text-foreground">
@@ -200,23 +201,26 @@ export function OverviewPage() {
       )}
 
       {/* Metric Cards */}
-      <div className="mb-8 grid gap-5 sm:grid-cols-2">
-        {/* Total Leads card */}
-        <div className="group relative overflow-hidden rounded-xl border border-border bg-white p-6 transition-all duration-150 hover:shadow-md">
-          {/* Decorative gradient */}
-          <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-primary/[0.06] transition-transform duration-300 group-hover:scale-150" aria-hidden="true" />
-          <div className="relative">
+      {loading ? (
+        <div className="mb-8 grid gap-5 sm:grid-cols-2">
+          <StatSkeleton />
+          <StatSkeleton />
+        </div>
+      ) : (
+        <div className="mb-8 grid gap-5 sm:grid-cols-2">
+          {/* Total Leads card */}
+          <div className="rounded-xl border border-border bg-white p-6 transition-all duration-150 hover:shadow-sm">
             <div className="flex items-center justify-between">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
                 <Users className="h-5 w-5" />
               </div>
             </div>
             <div className="mt-4">
-              <div ref={totalRef} className="font-heading text-3xl font-bold text-foreground">
+              <div ref={totalRef} className="font-heading text-3xl font-bold tracking-tight text-foreground">
                 {stats?.totalThisWeek ?? 0}
               </div>
               <div className="mt-1 text-sm text-foreground/60">
-                Total Leads This Week
+                Total leads this week
               </div>
               {previous.total > 0 && (
                 <div className="mt-2">
@@ -225,23 +229,20 @@ export function OverviewPage() {
               )}
             </div>
           </div>
-        </div>
 
-        {/* Qualified Rate card */}
-        <div className="group relative overflow-hidden rounded-xl border border-border bg-white p-6 transition-all duration-150 hover:shadow-md">
-          <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-green-500/[0.06] transition-transform duration-300 group-hover:scale-150" aria-hidden="true" />
-          <div className="relative">
+          {/* Qualified Rate card */}
+          <div className="rounded-xl border border-border bg-white p-6 transition-all duration-150 hover:shadow-sm">
             <div className="flex items-center justify-between">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-50 text-green-600">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
                 <Target className="h-5 w-5" />
               </div>
             </div>
             <div className="mt-4">
-              <div ref={rateRef} className="font-heading text-3xl font-bold text-foreground">
+              <div ref={rateRef} className="font-heading text-3xl font-bold tracking-tight text-foreground">
                 {stats?.qualifiedRate ?? 0}%
               </div>
               <div className="mt-1 text-sm text-foreground/60">
-                Qualified Rate{' '}
+                Qualified rate{' '}
                 <span className="text-foreground/40">
                   ({stats?.qualifiedCount ?? 0} / {stats?.totalThisWeek ?? 0})
                 </span>
@@ -254,7 +255,7 @@ export function OverviewPage() {
             </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Recent Activity */}
       <div>
@@ -271,18 +272,37 @@ export function OverviewPage() {
           </Link>
         </div>
 
-        {stats && stats.recentActivity.length === 0 ? (
+        {loading ? (
+          <div className="divide-y divide-border rounded-xl border border-border bg-white">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-4 px-5 py-3.5">
+                <div className="flex-1">
+                  <div className="skeleton h-4 w-36" />
+                </div>
+                <div className="skeleton h-5 w-20 rounded-full" />
+                <div className="skeleton h-4 w-28" />
+              </div>
+            ))}
+          </div>
+        ) : stats && stats.recentActivity.length === 0 ? (
           <div className="flex flex-col items-center justify-center rounded-xl border border-border bg-white px-6 py-12 text-center">
-            <MessageSquare className="mb-3 h-8 w-8 text-foreground/20" />
+            <MessageSquare className="mb-3 h-8 w-8 text-foreground/20" aria-hidden="true" />
             <p className="text-sm font-medium text-foreground/60">
-              No conversations yet
+              No leads yet
             </p>
-            <p className="mt-1 text-xs text-foreground/40">
-              Leads will appear here once visitors start chatting with the widget
+            <p className="mt-1 text-xs text-foreground/40 max-w-sm">
+              Go to <strong>Embed</strong> to add the chat widget to your site. Once visitors start chatting, their leads will appear here.
             </p>
+            <Link
+              to="/dashboard/embed"
+              className="mt-4 inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition-all duration-150 hover:opacity-90 active:scale-[0.97]"
+            >
+              Set up widget
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
           </div>
         ) : (
-          <div ref={activityRef} className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-white shadow-sm">
+          <div className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-white">
             {stats?.recentActivity.map((item) => {
               const config = statusConfig[item.status] || statusConfig.active
               const date = new Date(item.created_at)
@@ -311,11 +331,7 @@ export function OverviewPage() {
                       )}
                     </div>
                   </div>
-                  <span
-                    className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${
-                      config.color
-                    }`}
-                  >
+                  <span className={`text-xs font-medium ${config.text}`}>
                     {config.label}
                   </span>
                   <span className="text-xs text-foreground/40 whitespace-nowrap">

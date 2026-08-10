@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import {
-  Loader2,
   ArrowLeft,
   Check,
   Archive,
@@ -17,11 +16,13 @@ import {
   Share2,
   CheckCheck,
   ExternalLink,
+  Mail,
+  Building2,
+  Globe,
 } from 'lucide-react'
 import { QualificationChecks } from '../components/QualificationChecks'
 import { EnrichmentCard } from '../components/EnrichmentCard'
 import { EmailClient } from '../components/EmailClient'
-import { useAnimeStagger } from '../hooks/useAnime'
 import type { Enrichment, QualificationCheck, ReferralContact } from '../types/features'
 
 interface Brief {
@@ -58,32 +59,12 @@ interface LeadDetail {
   messages: Message[]
 }
 
-const statusConfig: Record<string, { label: string; color: string; description: string }> = {
-  qualified: {
-    label: 'Qualified',
-    color: 'text-green-600 bg-green-50 border-green-200',
-    description: 'Project in scope with budget and timeline — ready for follow-up.',
-  },
-  needs_info: {
-    label: 'Needs Info',
-    color: 'text-amber-600 bg-amber-50 border-amber-200',
-    description: 'Project seems in scope but needs more details.',
-  },
-  out_of_scope: {
-    label: 'Out of Scope',
-    color: 'text-gray-500 bg-gray-50 border-gray-200',
-    description: 'Service not offered or budget below minimum.',
-  },
-  active: {
-    label: 'In Progress',
-    color: 'text-blue-600 bg-blue-50 border-blue-200',
-    description: 'Conversation ongoing — not yet classified.',
-  },
-  archived: {
-    label: 'Archived',
-    color: 'text-gray-400 bg-gray-50 border-gray-200',
-    description: 'This lead has been archived.',
-  },
+const statusConfig: Record<string, { label: string; text: string; dot: string }> = {
+  qualified: { label: 'Qualified', text: 'text-emerald-600', dot: 'bg-emerald-500' },
+  needs_info: { label: 'Needs Info', text: 'text-amber-600', dot: 'bg-amber-500' },
+  out_of_scope: { label: 'Out of Scope', text: 'text-foreground/50', dot: 'bg-foreground/40' },
+  active: { label: 'In Progress', text: 'text-primary', dot: 'bg-primary' },
+  archived: { label: 'Archived', text: 'text-foreground/40', dot: 'bg-foreground/30' },
 }
 
 export function LeadDetailPage() {
@@ -95,12 +76,9 @@ export function LeadDetailPage() {
   const [actionLoading, setActionLoading] = useState(false)
   const [copied, setCopied] = useState(false)
 
-  // anime.js — staggered entrance for transcript + brief once loaded
-  const transcriptRef = useAnimeStagger<HTMLDivElement>([loading, lead?.messages.length ?? 0], { staggerBy: 30, duration: 280, from: 'bottom', distance: '8px' })
-  const briefRef = useAnimeStagger<HTMLDivElement>([loading, lead?.brief ? 1 : 0], { staggerBy: 40, duration: 320, from: 'fade' })
-
   useEffect(() => {
     if (id) loadLead(id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
 
   const loadLead = async (leadId: string) => {
@@ -114,7 +92,7 @@ export function LeadDetailPage() {
         .eq('id', leadId)
         .single()
 
-      if (convError || !conversation) throw new Error('Conversation not found')
+      if (convError || !conversation) throw new Error('Lead not found')
 
       const { data: messages, error: msgError } = await supabase
         .from('messages')
@@ -209,8 +187,20 @@ export function LeadDetailPage() {
 
   if (loading) {
     return (
-      <div className="flex h-full items-center justify-center p-8">
-        <Loader2 className="h-6 w-6 animate-spin text-primary" aria-hidden="true" />
+      <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="mb-6 h-5 w-28">
+          <div className="skeleton h-5 w-28" />
+        </div>
+        <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
+          <div className="space-y-4">
+            <div className="skeleton h-9 w-56" />
+            <div className="skeleton h-[420px] w-full" />
+          </div>
+          <div className="space-y-4">
+            <div className="skeleton h-[300px] w-full" />
+            <div className="skeleton h-64 w-full" />
+          </div>
+        </div>
       </div>
     )
   }
@@ -235,9 +225,9 @@ export function LeadDetailPage() {
   const config = statusConfig[lead.status] || statusConfig.active
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
+    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
       {/* Back link + actions */}
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+      <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
         <Link
           to="/dashboard/leads"
           className="inline-flex cursor-pointer items-center gap-1.5 text-sm font-medium text-foreground/60 transition-colors duration-150 hover:text-foreground"
@@ -254,7 +244,7 @@ export function LeadDetailPage() {
               aria-label="Copy shareable brief link"
             >
               {copied ? (
-                <CheckCheck className="h-3.5 w-3.5 text-green-600" aria-hidden="true" />
+                <CheckCheck className="h-3.5 w-3.5 text-emerald-600" aria-hidden="true" />
               ) : (
                 <Share2 className="h-3.5 w-3.5" aria-hidden="true" />
               )}
@@ -264,7 +254,7 @@ export function LeadDetailPage() {
           <button
             onClick={() => updateStatus('qualified')}
             disabled={actionLoading || lead.status === 'qualified'}
-            className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-border bg-white px-3 py-1.5 text-xs font-medium text-foreground/70 transition-all duration-150 hover:bg-green-50 hover:text-green-600 hover:border-green-200 active:scale-[0.97] disabled:opacity-40"
+            className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white transition-all duration-150 hover:opacity-90 active:scale-[0.97] disabled:opacity-40"
           >
             <Check className="h-3.5 w-3.5" aria-hidden="true" />
             Mark Handled
@@ -282,171 +272,148 @@ export function LeadDetailPage() {
 
       {actionLoading && (
         <div className="mb-4 flex items-center gap-2 text-xs text-primary">
-          <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+          <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary border-t-transparent" aria-hidden="true" />
           Updating…
         </div>
       )}
 
-      {/* Two-column layout */}
-      <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
-        {/* Left: Chat transcript */}
+      {/* Header row: lead identity + status */}
+      <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <div className="mb-4 flex items-center gap-3">
-            <h2 className="font-heading text-lg font-semibold text-foreground">
-              Chat Transcript
-            </h2>
-            <span
-              className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${
-                config.color
-              }`}
-            >
-              {config.label}
+          <h1 className="font-heading text-2xl font-semibold text-foreground">
+            {lead.brief?.client_contact || 'Anonymous visitor'}
+          </h1>
+          <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-foreground/50">
+            {lead.brief?.project_type && (
+              <span className="inline-flex items-center gap-1.5">
+                <Briefcase className="h-3.5 w-3.5" aria-hidden="true" />
+                {lead.brief.project_type}
+              </span>
+            )}
+            <span className="inline-flex items-center gap-1.5">
+              <Calendar className="h-3.5 w-3.5" aria-hidden="true" />
+              {new Date(lead.created_at).toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+              })}
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <MessageSquare className="h-3.5 w-3.5" aria-hidden="true" />
+              {lead.messages.length} message{lead.messages.length !== 1 ? 's' : ''}
             </span>
           </div>
+        </div>
 
-          <div className="rounded-xl border border-border bg-white">
-            {/* Chat header */}
-            <div className="border-b border-border px-5 py-3">
-              <div className="flex items-center gap-2 text-xs text-foreground/50">
-                <Calendar className="h-3.5 w-3.5" aria-hidden="true" />
-                <span>{formatDate(lead.created_at)}</span>
-                <span className="mx-1">·</span>
-                <span>
-                  {lead.messages.length} message{lead.messages.length !== 1 ? 's' : ''}
-                </span>
+        {/* Status — mono, dot indicator */}
+        <span className="inline-flex items-center gap-2 rounded-lg border border-border bg-white px-3 py-1.5">
+          <span className={`h-2 w-2 rounded-full ${config.dot}`} aria-hidden="true" />
+          <span className={`font-mono text-xs font-semibold uppercase tracking-wider ${config.text}`}>
+            {config.label}
+          </span>
+        </span>
+      </div>
+
+      {/* Two-column layout */}
+      <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
+        {/* Left: Qualification (centerpiece) + Chat transcript */}
+        <div>
+          {/* Qualification reasoning — the signature element */}
+          <section className="mb-6">
+            <h2 className="mb-3 font-heading text-base font-semibold text-foreground">
+              Qualification
+            </h2>
+            {lead.qualification_checks && lead.qualification_checks.length > 0 ? (
+              <QualificationChecks checks={lead.qualification_checks} />
+            ) : (
+              <div className="rounded-xl border border-dashed border-border bg-white px-5 py-4 text-sm text-foreground/50">
+                {lead.status === 'active'
+                  ? 'This conversation is still in progress — checks appear once the lead is classified.'
+                  : 'No qualification checks were recorded for this lead.'}
               </div>
-            </div>
+            )}
+          </section>
 
-            {/* Messages */}
-            <div ref={transcriptRef} className="max-h-[600px] space-y-4 overflow-y-auto px-5 py-4">
-              {lead.messages.length === 0 ? (
-                <div className="flex flex-col items-center py-8 text-center">
-                  <MessageSquare className="mb-2 h-6 w-6 text-foreground/20" aria-hidden="true" />
-                  <p className="text-sm text-foreground/40">No messages in this conversation</p>
-                </div>
-              ) : (
-                lead.messages.map((msg) => (
-                  <div
-                    key={msg.id}
-                    className={`flex items-end gap-2.5 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                  >
-                    {/* Avatar for assistant */}
-                    {msg.role === 'assistant' && (
-                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary shadow-sm">
-                        AI
-                      </div>
-                    )}
+          {/* Chat transcript */}
+          <section>
+            <h2 className="mb-3 font-heading text-base font-semibold text-foreground">
+              Conversation
+            </h2>
+
+            <div className="overflow-hidden rounded-xl border border-border bg-white">
+              {/* Messages */}
+              <div className="max-h-[560px] space-y-4 overflow-y-auto px-5 py-4">
+                {lead.messages.length === 0 ? (
+                  <div className="flex flex-col items-center py-8 text-center">
+                    <MessageSquare className="mb-2 h-6 w-6 text-foreground/20" aria-hidden="true" />
+                    <p className="text-sm text-foreground/40">No messages in this lead</p>
+                  </div>
+                ) : (
+                  lead.messages.map((msg) => (
                     <div
-                      className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
-                        msg.role === 'user'
-                          ? 'bg-primary text-white rounded-br-md'
-                          : 'bg-muted text-foreground rounded-bl-md'
-                      }`}
+                      key={msg.id}
+                      className={`flex items-end gap-2.5 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                     >
-                      <p className="whitespace-pre-wrap">{msg.content}</p>
-                      <p
-                        className={`mt-1 text-xs ${
-                          msg.role === 'user' ? 'text-white/60' : 'text-foreground/40'
+                      {msg.role === 'assistant' && (
+                        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-foreground text-[10px] font-semibold text-white">
+                          AI
+                        </div>
+                      )}
+                      <div
+                        className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
+                          msg.role === 'user'
+                            ? 'bg-primary text-white rounded-br-md'
+                            : 'bg-muted text-foreground rounded-bl-md'
                         }`}
                       >
-                        {new Date(msg.created_at).toLocaleTimeString('en-US', {
-                          hour: 'numeric',
-                          minute: '2-digit',
-                        })}
-                      </p>
-                    </div>
-                    {/* Avatar for user */}
-                    {msg.role === 'user' && (
-                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-foreground/10 text-xs font-semibold text-foreground/60 shadow-sm">
-                        U
+                        <p className="whitespace-pre-wrap">{msg.content}</p>
+                        <p
+                          className={`mt-1 text-xs ${
+                            msg.role === 'user' ? 'text-white/60' : 'text-foreground/40'
+                          }`}
+                        >
+                          {new Date(msg.created_at).toLocaleTimeString('en-US', {
+                            hour: 'numeric',
+                            minute: '2-digit',
+                          })}
+                        </p>
                       </div>
-                    )}
-                  </div>
-                ))
-              )}
+                      {msg.role === 'user' && (
+                        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-semibold text-white">
+                          U
+                        </div>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
-          </div>
+          </section>
         </div>
 
         {/* Right: Lead details */}
         <div>
-          <h2 className="mb-4 font-heading text-lg font-semibold text-foreground">
-            Lead Details
-          </h2>
-
-          {/* Status card — with qualification reasoning checklist */}
-          <div className="mb-4 rounded-xl border border-border bg-white p-5">
-            <div className="flex items-center justify-between gap-2">
-              <p className="text-xs font-semibold uppercase tracking-wider text-foreground/50">
-                Status
-              </p>
-              <span
-                className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${
-                  config.color
-                }`}
-              >
-                {config.label}
-              </span>
-            </div>
-            <p className="mt-2 text-xs text-foreground/60">{config.description}</p>
-
-            {lead.qualification_checks && lead.qualification_checks.length > 0 && (
-              <div className="mt-4 border-t border-border pt-4">
-                <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-foreground/50">
-                  Qualification Reasoning
-                </p>
-                <QualificationChecks checks={lead.qualification_checks} />
-              </div>
-            )}
-          </div>
-
-          {/* Referral for out-of-scope */}
-          {lead.referral && (
-            <div className="mb-4 rounded-xl border border-border bg-white p-5">
-              <p className="text-xs font-semibold uppercase tracking-wider text-foreground/50">
-                Referral Suggested
-              </p>
-              <p className="mt-2 text-sm font-medium text-foreground">{lead.referral.name}</p>
-              <p className="text-xs text-foreground/60">{lead.referral.service}</p>
-              {lead.referral.contact && (
-                <a
-                  href={
-                    lead.referral.contact.startsWith('http')
-                      ? lead.referral.contact
-                      : `mailto:${lead.referral.contact}`
-                  }
-                  target={lead.referral.contact.startsWith('http') ? '_blank' : undefined}
-                  rel="noreferrer"
-                  className="mt-1.5 inline-flex cursor-pointer items-center gap-1 text-xs font-medium text-primary transition-colors duration-150 hover:text-primary/80"
-                >
-                  {lead.referral.contact}
-                  <ExternalLink className="h-3 w-3" aria-hidden="true" />
-                </a>
-              )}
-            </div>
-          )}
-
-          {/* Brief card */}
+          {/* Brief */}
           {lead.brief ? (
-            <div className="mb-4">
-              <div ref={briefRef} className="rounded-xl border border-border bg-white divide-y divide-border">
-                <div className="flex items-center justify-between px-5 py-3">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-foreground/50">
-                    Project Brief
-                  </p>
-                  {lead.brief.share_token && (
-                    <a
-                      href={`/brief/${lead.brief.share_token}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex cursor-pointer items-center gap-1 text-xs font-medium text-primary transition-colors duration-150 hover:text-primary/80"
-                    >
-                      Open
-                      <ExternalLink className="h-3 w-3" aria-hidden="true" />
-                    </a>
-                  )}
-                </div>
+            <div className="mb-4 overflow-hidden rounded-xl border border-border bg-white">
+              <div className="flex items-center justify-between border-b border-border px-5 py-3">
+                <p className="text-xs font-semibold uppercase tracking-wider text-foreground/50">
+                  Project Brief
+                </p>
+                {lead.brief.share_token && (
+                  <a
+                    href={`/brief/${lead.brief.share_token}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex cursor-pointer items-center gap-1 text-xs font-medium text-primary transition-colors duration-150 hover:text-primary/80"
+                  >
+                    Open
+                    <ExternalLink className="h-3 w-3" aria-hidden="true" />
+                  </a>
+                )}
+              </div>
 
+              <div className="divide-y divide-border">
                 <BriefField
                   icon={<User className="h-4 w-4" aria-hidden="true" />}
                   label="Contact"
@@ -454,16 +421,23 @@ export function LeadDetailPage() {
                 />
                 {lead.brief.email && (
                   <BriefField
-                    icon={<MessageSquare className="h-4 w-4" aria-hidden="true" />}
+                    icon={<Mail className="h-4 w-4" aria-hidden="true" />}
                     label="Email"
                     value={lead.brief.email}
                   />
                 )}
                 {lead.brief.company && (
                   <BriefField
-                    icon={<Briefcase className="h-4 w-4" aria-hidden="true" />}
+                    icon={<Building2 className="h-4 w-4" aria-hidden="true" />}
                     label="Company"
                     value={lead.brief.company}
+                  />
+                )}
+                {lead.brief.website && (
+                  <BriefField
+                    icon={<Globe className="h-4 w-4" aria-hidden="true" />}
+                    label="Website"
+                    value={lead.brief.website}
                   />
                 )}
                 <BriefField
@@ -518,6 +492,32 @@ export function LeadDetailPage() {
             </div>
           )}
 
+          {/* Referral for out-of-scope */}
+          {lead.referral && (
+            <div className="mb-4 rounded-xl border border-border bg-white p-5">
+              <p className="text-xs font-semibold uppercase tracking-wider text-foreground/50">
+                Referral Suggested
+              </p>
+              <p className="mt-2 text-sm font-medium text-foreground">{lead.referral.name}</p>
+              <p className="text-xs text-foreground/60">{lead.referral.service}</p>
+              {lead.referral.contact && (
+                <a
+                  href={
+                    lead.referral.contact.startsWith('http')
+                      ? lead.referral.contact
+                      : `mailto:${lead.referral.contact}`
+                  }
+                  target={lead.referral.contact.startsWith('http') ? '_blank' : undefined}
+                  rel="noreferrer"
+                  className="mt-1.5 inline-flex cursor-pointer items-center gap-1 text-xs font-medium text-primary transition-colors duration-150 hover:text-primary/80"
+                >
+                  {lead.referral.contact}
+                  <ExternalLink className="h-3 w-3" aria-hidden="true" />
+                </a>
+              )}
+            </div>
+          )}
+
           {/* Email Client — follow-up draft + send (qualified / needs_info only) */}
           {lead.brief &&
             lead.brief.email &&
@@ -538,7 +538,7 @@ export function LeadDetailPage() {
               />
             )}
 
-          {/* Visitor info */}
+          {/* Visitor info — mono */}
           <div className="rounded-xl border border-border bg-white p-5">
             <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-foreground/50">
               Visitor ID

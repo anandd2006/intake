@@ -38,7 +38,7 @@ export function DashboardLayout() {
       {/* Sidebar */}
       <aside
         className={`
-          fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-border bg-white
+          fixed inset-y-0 left-0 z-50 flex w-60 flex-col border-r border-border bg-white
           transition-transform duration-200 ease-out
           lg:static lg:translate-x-0
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
@@ -46,18 +46,18 @@ export function DashboardLayout() {
         aria-label="Main navigation"
       >
         {/* Logo */}
-        <div className="flex h-16 items-center justify-between border-b border-border px-6">
+        <div className="flex h-16 items-center justify-between border-b border-border px-5">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-[#0B5E58] text-sm font-bold text-white shadow-sm">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-sm font-bold text-white">
               I
             </div>
-            <span className="font-heading text-lg font-semibold text-foreground">
+            <span className="font-heading text-base font-semibold text-foreground">
               Intake
             </span>
           </div>
           <button
             onClick={() => setSidebarOpen(false)}
-            className="cursor-pointer rounded-md p-1.5 text-muted-foreground transition-colors duration-150 hover:bg-muted hover:text-foreground lg:hidden"
+            className="cursor-pointer rounded-md p-1.5 text-foreground/50 transition-colors duration-150 hover:bg-muted hover:text-foreground lg:hidden"
             aria-label="Close sidebar"
           >
             <X className="h-4 w-4" />
@@ -65,7 +65,7 @@ export function DashboardLayout() {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 space-y-1 px-3 py-4">
+        <nav className="flex-1 space-y-0.5 px-3 py-4" aria-label="Dashboard navigation">
           {navItems.map((item) => (
             <NavLink
               key={item.to}
@@ -73,37 +73,22 @@ export function DashboardLayout() {
               end={item.to === '/dashboard/overview'}
               onClick={() => setSidebarOpen(false)}
               className={({ isActive }) =>
-                `group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150 ${
+                `group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150 ${
                   isActive
                     ? 'bg-primary/10 text-primary'
-                    : 'text-foreground/70 hover:bg-muted hover:text-foreground'
+                    : 'text-foreground/60 hover:bg-muted hover:text-foreground'
                 }`
               }
             >
-              {({ isActive }) => (
-                <>
-                  {/* Active indicator bar */}
-                  <span
-                    className={`absolute left-0 top-1/2 h-5 w-0.5 -translate-x-1.5 -translate-y-1/2 rounded-full transition-all duration-200 ${
-                      isActive ? 'bg-primary scale-y-100' : 'scale-y-0'
-                    }`}
-                    aria-hidden="true"
-                  />
-                  <item.icon className={`h-4 w-4 transition-transform duration-150 ${
-                    isActive ? 'scale-110' : 'group-hover:scale-105'
-                  }`} />
-                  {item.label}
-                </>
-              )}
+              <item.icon className="h-4 w-4 shrink-0 transition-transform duration-150 group-hover:scale-105" aria-hidden="true" />
+              {item.label}
             </NavLink>
           ))}
 
-          {/* Spacer */}
           <div className="border-t border-border pt-3 mt-4" />
 
-          {/* Quick status hint */}
           <div className="px-3 py-2">
-            <p className="text-xs text-foreground/30 font-medium uppercase tracking-wider">
+            <p className="text-[11px] font-medium uppercase tracking-widest text-foreground/30">
               Dashboard
             </p>
           </div>
@@ -121,7 +106,7 @@ export function DashboardLayout() {
           </div>
           <button
             onClick={signOut}
-            className="flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-foreground/60 transition-all duration-150 hover:bg-destructive/5 hover:text-destructive"
+            className="flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-foreground/50 transition-all duration-150 hover:bg-destructive/5 hover:text-destructive"
           >
             <LogOut className="h-4 w-4" />
             Sign out
@@ -132,23 +117,22 @@ export function DashboardLayout() {
       {/* Main content */}
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Mobile header */}
-        <header className="flex h-16 items-center gap-4 border-b border-border bg-white px-4 shadow-sm lg:hidden">
+        <header className="flex h-16 items-center gap-4 border-b border-border bg-white px-4 lg:hidden">
           <button
             onClick={() => setSidebarOpen(true)}
-            className="cursor-pointer rounded-md p-2 text-foreground/70 transition-colors duration-150 hover:bg-muted"
+            className="cursor-pointer rounded-md p-2 text-foreground/60 transition-colors duration-150 hover:bg-muted"
             aria-label="Open sidebar"
           >
             <Menu className="h-5 w-5" />
           </button>
           <div className="flex items-center gap-2.5">
-            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-primary to-[#0B5E58] text-xs font-bold text-white">
+            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-xs font-bold text-white">
               I
             </div>
             <span className="font-heading text-base font-semibold text-foreground">
               Intake
             </span>
           </div>
-          {/* Spacer so avatar right-aligned */}
           <div className="ml-auto flex items-center gap-2">
             <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
               {user?.email?.charAt(0).toUpperCase() || 'U'}
@@ -161,7 +145,7 @@ export function DashboardLayout() {
           id="main-content"
           className="flex-1 overflow-y-auto bg-background"
         >
-          <AnimateIn key={location.pathname} from="fade" duration={200}>
+          <AnimateIn key={location.pathname} from="fade" duration={180}>
             <Outlet />
           </AnimateIn>
         </main>

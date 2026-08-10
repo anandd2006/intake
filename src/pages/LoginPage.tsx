@@ -33,7 +33,7 @@ export function LoginPage() {
 
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center">
+      <div className="flex h-screen items-center justify-center bg-background">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
       </div>
     )
@@ -74,28 +74,24 @@ export function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen bg-background">
       {/* Left brand panel — hidden on mobile */}
-      <div className="hidden lg:flex lg:w-1/2 flex-col bg-gradient-to-br from-primary to-[#0B5E58] p-12 relative overflow-hidden">
-        {/* Background decorative circles */}
-        <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-white/5" aria-hidden="true" />
-        <div className="absolute -bottom-32 -left-16 h-80 w-80 rounded-full bg-white/[0.03]" aria-hidden="true" />
-        
+      <div className="hidden lg:flex lg:w-1/2 flex-col bg-foreground p-12 relative overflow-hidden">
         {/* Logo */}
         <div className="relative z-10 flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 backdrop-blur-sm">
             <MessageSquare className="h-5 w-5 text-white" />
           </div>
           <span className="font-heading text-xl font-semibold text-white">Intake</span>
         </div>
 
         {/* Tagline */}
-        <div className="relative z-10 mt-auto mb-16">
-          <AnimateIn from="bottom" distance="24px" duration={500}>
+        <div className="relative z-10 mt-auto mb-20">
+          <AnimateIn from="fade" duration={400}>
             <h1 className="font-heading text-3xl font-bold leading-tight text-white">
               Never lose a lead<br />again.
             </h1>
-            <p className="mt-4 max-w-sm text-base text-white/70 leading-relaxed">
+            <p className="mt-4 max-w-sm text-base text-white/60 leading-relaxed">
               Your AI client intake copilot — qualifies leads, captures project briefs, 
               and drafts follow-ups so you can focus on the work you love.
             </p>
@@ -105,14 +101,14 @@ export function LoginPage() {
         {/* Benefits list */}
         <div className="relative z-10 space-y-5">
           {benefits.map((item, i) => (
-            <AnimateIn key={item.title} from="bottom" distance="16px" duration={400} delay={200 + i * 100}>
+            <AnimateIn key={item.title} from="fade" duration={300} delay={100 + i * 80}>
               <div className="flex items-start gap-3">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/10 backdrop-blur-sm">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/10">
                   <item.icon className="h-4 w-4 text-white" />
                 </div>
                 <div>
                   <p className="text-sm font-medium text-white">{item.title}</p>
-                  <p className="text-xs text-white/60">{item.description}</p>
+                  <p className="text-xs text-white/50">{item.description}</p>
                 </div>
               </div>
             </AnimateIn>
@@ -122,14 +118,14 @@ export function LoginPage() {
 
       {/* Right form panel */}
       <div className="flex flex-1 items-center justify-center bg-background px-6 py-12 lg:px-12">
-        <AnimateIn from="bottom" distance="20px" duration={400} className="w-full max-w-sm">
+        <AnimateIn from="fade" duration={300} className="w-full max-w-sm">
           {/* Mobile logo */}
           <div className="mb-8 text-center lg:hidden">
             <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-primary">
               <MessageSquare className="h-6 w-6 text-white" />
             </div>
             <h1 className="font-heading text-2xl font-semibold text-foreground">
-              {isSignUp ? 'Create your account' : 'Sign in to Intake'}
+              {isSignUp ? 'Create your account' : 'Sign in'}
             </h1>
             <p className="mt-1 text-sm text-foreground/60">
               {isSignUp

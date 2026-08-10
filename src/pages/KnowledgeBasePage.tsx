@@ -88,6 +88,19 @@ interface PastProject {
   description: string
 }
 
+function SkeletonSection() {
+  return (
+    <div className="space-y-6">
+      <div className="skeleton h-6 w-48" />
+      <div className="skeleton h-24 w-full rounded-xl" />
+      <div className="skeleton h-24 w-full rounded-xl" />
+      <div className="skeleton h-24 w-full rounded-xl" />
+      <div className="skeleton h-24 w-full rounded-xl" />
+      <div className="skeleton h-24 w-full rounded-xl" />
+    </div>
+  )
+}
+
 export function KnowledgeBasePage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -109,6 +122,8 @@ export function KnowledgeBasePage() {
     service: '',
     contact: '',
   })
+  const [displayName, setDisplayName] = useState('')
+  const [tagline, setTagline] = useState('')
 
   // Convert past projects array to/from JSONB
   const projectsToStrings = (projects: PastProject[]): string[] =>
@@ -127,6 +142,7 @@ export function KnowledgeBasePage() {
 
   useEffect(() => {
     loadKnowledgeBase()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const loadKnowledgeBase = async () => {
@@ -148,6 +164,8 @@ export function KnowledgeBasePage() {
       setOutOfScopeRules((data.out_of_scope_rules as string[]) || [])
       setPastProjects(stringsToProjects((data.past_projects as string[]) || []))
       setReferralContacts((data.referral_contacts as ReferralContact[] | null) || [])
+      setDisplayName(data.display_name || '')
+      setTagline(data.tagline || '')
     }
     setLoading(false)
   }
@@ -177,6 +195,8 @@ export function KnowledgeBasePage() {
       out_of_scope_rules: outOfScopeRules,
       past_projects: projectsToStrings(pastProjects),
       referral_contacts: referralContacts as unknown as Json,
+      display_name: displayName,
+      tagline,
     }
 
     // Check if a row exists
@@ -212,14 +232,18 @@ export function KnowledgeBasePage() {
 
   if (loading) {
     return (
-      <div className="flex h-full items-center justify-center p-8">
-        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="mb-8">
+          <div className="skeleton h-8 w-56 mb-2" />
+          <div className="skeleton h-4 w-96" />
+        </div>
+        <SkeletonSection />
       </div>
     )
   }
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6 lg:px-8">
+    <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
       {/* Header */}
       <div className="mb-8">
         <h1 className="font-heading text-2xl font-semibold text-foreground">
@@ -232,8 +256,42 @@ export function KnowledgeBasePage() {
       </div>
 
       <div className="space-y-8">
+        {/* Display Name & Tagline */}
+        <section className="space-y-4 rounded-xl border border-border bg-white p-6">
+          <div>
+            <label className="block text-sm font-medium text-foreground/80 mb-1.5">
+              Your Business Name
+            </label>
+            <input
+              type="text"
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              placeholder="e.g. John Smith Design"
+              className="block w-full rounded-lg border border-border bg-white px-4 py-2.5 text-sm text-foreground placeholder:text-foreground/30 transition-colors duration-150 focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/20"
+            />
+            <p className="mt-1 text-xs text-foreground/50">
+              Shown in the chat widget header and standalone page.
+            </p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-foreground/80 mb-1.5">
+              Tagline
+            </label>
+            <input
+              type="text"
+              value={tagline}
+              onChange={(e) => setTagline(e.target.value)}
+              placeholder="e.g. Web design & development"
+              className="block w-full rounded-lg border border-border bg-white px-4 py-2.5 text-sm text-foreground placeholder:text-foreground/30 transition-colors duration-150 focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/20"
+            />
+            <p className="mt-1 text-xs text-foreground/50">
+              A short tagline shown below your business name in the widget.
+            </p>
+          </div>
+        </section>
+
         {/* Services */}
-        <section className="rounded-xl border border-border bg-white p-6 shadow-sm">
+        <section className="rounded-xl border border-border bg-white p-6">
           <TagInput
             label="Services Offered"
             values={services}
@@ -243,7 +301,7 @@ export function KnowledgeBasePage() {
         </section>
 
         {/* Pricing Ranges */}
-        <section className="rounded-xl border border-border bg-white p-6 shadow-sm">
+        <section className="rounded-xl border border-border bg-white p-6">
           <TagInput
             label="Pricing Ranges"
             values={pricingRanges}
@@ -253,7 +311,7 @@ export function KnowledgeBasePage() {
         </section>
 
         {/* Availability */}
-        <section className="rounded-xl border border-border bg-white p-6 shadow-sm">
+        <section className="rounded-xl border border-border bg-white p-6">
           <div>
             <label className="block text-sm font-medium text-foreground/80 mb-1.5">
               Current Availability
@@ -269,7 +327,7 @@ export function KnowledgeBasePage() {
         </section>
 
         {/* Out of Scope */}
-        <section className="rounded-xl border border-border bg-white p-6 shadow-sm">
+        <section className="rounded-xl border border-border bg-white p-6">
           <TagInput
             label="Out of Scope (Services NOT offered)"
             values={outOfScopeRules}
@@ -279,7 +337,7 @@ export function KnowledgeBasePage() {
         </section>
 
         {/* Past Projects */}
-        <section className="rounded-xl border border-border bg-white p-6 shadow-sm">
+        <section className="rounded-xl border border-border bg-white p-6">
           <label className="block text-sm font-medium text-foreground/80 mb-1.5">
             Past Projects
           </label>
@@ -341,8 +399,8 @@ export function KnowledgeBasePage() {
           </div>
         </section>
 
-        {/* Referral Contacts — grounded out-of-scope suggestions */}
-        <section className="rounded-xl border border-border bg-white p-6 shadow-sm">
+        {/* Referral Contacts */}
+        <section className="rounded-xl border border-border bg-white p-6">
           <label className="block text-sm font-medium text-foreground/80 mb-1.5">
             Referral Contacts
           </label>
@@ -441,14 +499,14 @@ export function KnowledgeBasePage() {
             ) : (
               <Save className="h-4 w-4" />
             )}
-            {saving ? 'Saving…' : 'Save Knowledge Base'}
+            {saving ? 'Saving…' : 'Save'}
           </button>
 
           {message && (
             <span
               className={`text-sm font-medium ${
                 message.type === 'success'
-                  ? 'text-green-600'
+                  ? 'text-emerald-600'
                   : 'text-destructive'
               }`}
               role={message.type === 'error' ? 'alert' : 'status'}
