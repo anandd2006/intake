@@ -96,19 +96,19 @@ export function useWidgetConfig(): WidgetConfig | null {
 
   useEffect(() => {
     let cancelled = false
-    supabase
-      .rpc('get_widget_config')
-      .then(({ data }) => {
+    ;(async () => {
+      try {
+        const { data } = await supabase.rpc('get_widget_config')
         if (cancelled || !data) return
         const parsed = data as unknown as WidgetConfig
         setConfig({
           display_name: parsed.display_name || '',
           tagline: parsed.tagline || '',
         })
-      })
-      .catch(() => {
+      } catch {
         /* non-fatal — widget still works with fallback title */
-      })
+      }
+    })()
     return () => {
       cancelled = true
     }
