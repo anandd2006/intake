@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import { useNavigate } from 'react-router-dom'
 import {
   ArrowLeft,
   Check,
@@ -20,7 +19,6 @@ import {
   Mail,
   Building2,
   Globe,
-  Trash2,
 } from 'lucide-react'
 import { QualificationChecks } from '../components/QualificationChecks'
 import { EnrichmentCard } from '../components/EnrichmentCard'
@@ -75,10 +73,7 @@ export function LeadDetailPage() {
   const [lead, setLead] = useState<LeadDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const navigate = useNavigate()
   const [actionLoading, setActionLoading] = useState(false)
-  const [deleteLoading, setDeleteLoading] = useState(false)
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [copied, setCopied] = useState(false)
 
   useEffect(() => {
@@ -179,23 +174,6 @@ export function LeadDetailPage() {
     setLead((prev) => (prev ? { ...prev, email_sent_at: at } : null))
   }
 
-  const handleDelete = async () => {
-    if (!id) return
-    setDeleteLoading(true)
-    const { error: delError } = await supabase
-      .from('conversations')
-      .delete()
-      .eq('id', id)
-
-    if (delError) {
-      setError('Failed to delete lead. Please try again.')
-    } else {
-      navigate('/dashboard/leads')
-    }
-    setDeleteLoading(false)
-    setShowDeleteConfirm(false)
-  }
-
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString('en-US', {
       weekday: 'long',
@@ -288,14 +266,6 @@ export function LeadDetailPage() {
           >
             <Archive className="h-3.5 w-3.5" aria-hidden="true" />
             Archive
-          </button>
-          <button
-            onClick={() => setShowDeleteConfirm(true)}
-            disabled={actionLoading}
-            className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-destructive/40 bg-white px-3 py-1.5 text-xs font-medium text-destructive transition-all duration-150 hover:bg-destructive/5 active:scale-[0.97] disabled:opacity-40"
-          >
-            <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
-            Delete
           </button>
         </div>
       </div>
@@ -577,50 +547,6 @@ export function LeadDetailPage() {
               {lead.visitor_id || 'N/A'}
             </p>
           </div>
-
-          {/* Delete confirmation dialog */}
-          {showDeleteConfirm && (
-            <div
-              className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-4 backdrop-blur-sm"
-              onClick={() => setShowDeleteConfirm(false)}
-              role="dialog"
-              aria-modal="true"
-              aria-label="Delete lead"
-            >
-              <div
-                className="w-full max-w-sm rounded-xl border border-border bg-white p-6 shadow-lg"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <div className="flex items-start gap-3">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-destructive/10">
-                    <AlertTriangle className="h-5 w-5 text-destructive" aria-hidden="true" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-semibold text-foreground">Delete this lead?</h3>
-                    <p className="mt-1 text-sm text-foreground/60">
-                      This permanently deletes the lead and all associated data (brief, messages). This cannot be undone.
-                    </p>
-                  </div>
-                </div>
-                <div className="mt-5 flex justify-end gap-2.5">
-                  <button
-                    onClick={() => setShowDeleteConfirm(false)}
-                    disabled={deleteLoading}
-                    className="cursor-pointer rounded-lg border border-border bg-white px-4 py-2 text-sm font-medium text-foreground/70 transition-all duration-150 hover:bg-muted disabled:opacity-50"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleDelete}
-                    disabled={deleteLoading}
-                    className="cursor-pointer rounded-lg bg-destructive px-4 py-2 text-sm font-semibold text-white transition-all duration-150 hover:bg-destructive/90 active:scale-[0.97] disabled:opacity-50"
-                  >
-                    {deleteLoading ? 'Deleting…' : 'Delete permanently'}
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>
