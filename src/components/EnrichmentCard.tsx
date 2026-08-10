@@ -15,23 +15,23 @@ export function EnrichmentCard({
 }) {
   if (!enrichment) return null
 
-  const labelClass = variant === 'widget' ? 'text-foreground/50' : 'text-foreground/50'
-  const valueClass = variant === 'widget' ? 'text-foreground' : 'text-foreground'
+  const labelClass = variant === 'widget' ? 'text-white/60' : 'text-foreground/50'
+  const valueClass = variant === 'widget' ? 'text-white' : 'text-foreground'
   const cardClass =
     variant === 'widget'
-      ? 'rounded-xl bg-muted/50 p-4'
+      ? 'rounded-xl bg-white/10 p-4'
       : 'rounded-xl border border-border bg-white divide-y divide-border'
 
   return (
     <div className={cardClass}>
       <div className={variant === 'widget' ? 'mb-3' : 'px-5 py-3'}>
         <p
-          className={`text-xs font-semibold uppercase tracking-wider ${variant === 'widget' ? 'text-foreground/70' : labelClass}`}
+          className={`text-xs font-semibold uppercase tracking-wider ${variant === 'widget' ? 'text-white/80' : labelClass}`}
         >
           Enrichment
         </p>
         {variant === 'widget' && (
-          <p className="mt-0.5 text-xs text-foreground/50">
+          <p className="mt-0.5 text-xs text-white/50">
             From {enrichment.source_domain} ·{' '}
             {new Date(enrichment.enriched_at).toLocaleDateString('en-US', {
               month: 'short',
@@ -46,7 +46,7 @@ export function EnrichmentCard({
         <div className={variant === 'widget' ? '' : 'px-5 py-3.5'}>
           <div className="flex items-start gap-3">
             <Building2
-              className={`mt-0.5 h-4 w-4 shrink-0 ${variant === 'widget' ? 'text-foreground/40' : 'text-foreground/40'}`}
+              className={`mt-0.5 h-4 w-4 shrink-0 ${variant === 'widget' ? 'text-white/50' : 'text-foreground/40'}`}
               aria-hidden="true"
             />
             <div className="min-w-0">
@@ -61,7 +61,7 @@ export function EnrichmentCard({
         <div className={variant === 'widget' ? '' : 'px-5 py-3.5'}>
           <div className="flex items-start gap-3">
             <Factory
-              className={`mt-0.5 h-4 w-4 shrink-0 ${variant === 'widget' ? 'text-foreground/40' : 'text-foreground/40'}`}
+              className={`mt-0.5 h-4 w-4 shrink-0 ${variant === 'widget' ? 'text-white/50' : 'text-foreground/40'}`}
               aria-hidden="true"
             />
             <div className="min-w-0">
@@ -77,7 +77,7 @@ export function EnrichmentCard({
           <div className={variant === 'widget' ? '' : 'px-5 py-3.5'}>
             <div className="flex items-start gap-3">
               <Layers
-                className={`mt-0.5 h-4 w-4 shrink-0 ${variant === 'widget' ? 'text-foreground/40' : 'text-foreground/40'}`}
+                className={`mt-0.5 h-4 w-4 shrink-0 ${variant === 'widget' ? 'text-white/50' : 'text-foreground/40'}`}
                 aria-hidden="true"
               />
               <div className="min-w-0">
@@ -88,7 +88,7 @@ export function EnrichmentCard({
                       key={tech}
                       className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium ${
                         variant === 'widget'
-                          ? 'bg-border/50 text-foreground/70'
+                          ? 'bg-white/15 text-white'
                           : 'bg-muted text-foreground/70'
                       }`}
                     >
@@ -105,7 +105,7 @@ export function EnrichmentCard({
           <div className={variant === 'widget' ? '' : 'px-5 py-3.5'}>
             <div className="flex items-start gap-3">
               <Globe
-                className={`mt-0.5 h-4 w-4 shrink-0 ${variant === 'widget' ? 'text-foreground/40' : 'text-foreground/40'}`}
+                className={`mt-0.5 h-4 w-4 shrink-0 ${variant === 'widget' ? 'text-white/50' : 'text-foreground/40'}`}
                 aria-hidden="true"
               />
               <div className="min-w-0">

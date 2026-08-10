@@ -3,8 +3,7 @@ import { AuthProvider } from './hooks/useAuth'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { DashboardLayout } from './components/DashboardLayout'
 import { LoginPage } from './pages/LoginPage'
-import { FloatingWidget } from './pages/FloatingWidget'
-import { StandaloneWidget } from './pages/StandaloneWidget'
+import { WidgetPage } from './pages/WidgetPage'
 import { KnowledgeBasePage } from './pages/KnowledgeBasePage'
 import { OverviewPage } from './pages/OverviewPage'
 import { LeadsListPage } from './pages/LeadsListPage'
@@ -19,10 +18,7 @@ export default function App() {
         <Routes>
           {/* Public routes */}
           <Route path="/login" element={<LoginPage />} />
-          {/* /widget = floating bubble, for iframe embed on customer sites */}
-          <Route path="/widget" element={<FloatingWidget />} />
-          {/* /chat = full-page standalone, for direct link visits */}
-          <Route path="/chat" element={<StandaloneWidget />} />
+          <Route path="/widget" element={<WidgetPage />} />
           <Route path="/brief/:token" element={<BriefSharePage />} />
 
           {/* Protected dashboard routes */}

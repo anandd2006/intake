@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { Link } from 'react-router-dom'
 import {
+  Loader2,
   ChevronUp,
   ChevronDown,
   Check,
@@ -9,8 +10,8 @@ import {
   MessageSquare,
   Search,
   X,
-  ArrowRight,
 } from 'lucide-react'
+import { useAnimeStagger } from '../hooks/useAnime'
 
 type StatusFilter = 'all' | 'qualified' | 'needs_info' | 'out_of_scope' | 'active'
 type SortField = 'created_at' | 'status'
@@ -24,11 +25,11 @@ interface LeadRow {
   project_type: string | null
 }
 
-const statusConfig: Record<string, { label: string; text: string; dot: string }> = {
-  qualified: { label: 'Qualified', text: 'text-emerald-600', dot: 'bg-emerald-500' },
-  needs_info: { label: 'Needs Info', text: 'text-amber-600', dot: 'bg-amber-500' },
-  out_of_scope: { label: 'Out of Scope', text: 'text-foreground/50', dot: 'bg-foreground/40' },
-  active: { label: 'In Progress', text: 'text-primary', dot: 'bg-primary' },
+const statusConfig: Record<string, { label: string; color: string }> = {
+  qualified: { label: 'Qualified', color: 'text-green-600 bg-green-50 border-green-200' },
+  needs_info: { label: 'Needs Info', color: 'text-amber-600 bg-amber-50 border-amber-200' },
+  out_of_scope: { label: 'Out of Scope', color: 'text-gray-500 bg-gray-50 border-gray-200' },
+  active: { label: 'In Progress', color: 'text-blue-600 bg-blue-50 border-blue-200' },
 }
 
 const filterOptions: { value: StatusFilter; label: string }[] = [
@@ -39,27 +40,6 @@ const filterOptions: { value: StatusFilter; label: string }[] = [
   { value: 'active', label: 'In Progress' },
 ]
 
-function TableSkeleton() {
-  return (
-    <div className="overflow-hidden rounded-xl border border-border bg-white">
-      <div className="flex items-center gap-4 border-b border-border bg-muted/50 px-5 py-3">
-        <div className="skeleton h-3 w-16" />
-        <div className="skeleton h-3 w-24" />
-        <div className="skeleton ml-auto h-3 w-14" />
-      </div>
-      <div className="divide-y divide-border">
-        {Array.from({ length: 5 }).map((_, i) => (
-          <div key={i} className="flex items-center gap-4 px-5 py-4">
-            <div className="skeleton h-4 w-24" />
-            <div className="skeleton h-4 w-40" />
-            <div className="skeleton ml-auto h-5 w-20 rounded-full" />
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
-
 export function LeadsListPage() {
   const [leads, setLeads] = useState<LeadRow[]>([])
   const [loading, setLoading] = useState(true)
@@ -69,9 +49,11 @@ export function LeadsListPage() {
   const [sortDir, setSortDir] = useState<SortDir>('desc')
   const [searchQuery, setSearchQuery] = useState('')
 
+  // anime.js — stagger rows on initial load
+  const rowsRef = useAnimeStagger<HTMLDivElement>([loading, leads.length], { staggerBy: 40, duration: 280, from: 'fade' })
+
   useEffect(() => {
     loadLeads()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [statusFilter, sortField, sortDir])
 
   const loadLeads = async () => {
@@ -162,17 +144,15 @@ export function LeadsListPage() {
     )
   })
 
-  const hasFilters = searchQuery.trim() !== '' || statusFilter !== 'all'
-
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+    <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
       {/* Header */}
       <div className="mb-6">
         <h1 className="font-heading text-2xl font-semibold text-foreground">
           Leads
         </h1>
         <p className="mt-1 text-sm text-foreground/60">
-          Review and follow up on incoming leads from your widget
+          Review and manage incoming leads from the chat widget
         </p>
       </div>
 
@@ -185,12 +165,10 @@ export function LeadsListPage() {
       {/* Filters bar */}
       <div className="mb-4 flex flex-wrap items-center gap-3">
         {/* Status filter pills */}
-        <div className="flex flex-wrap gap-1.5" role="tablist" aria-label="Filter by status">
+        <div className="flex flex-wrap gap-1.5">
           {filterOptions.map((option) => (
             <button
               key={option.value}
-              role="tab"
-              aria-selected={statusFilter === option.value}
               onClick={() => setStatusFilter(option.value)}
               className={`cursor-pointer rounded-lg border px-3 py-1.5 text-xs font-medium transition-all duration-150 ${
                 statusFilter === option.value
@@ -227,27 +205,22 @@ export function LeadsListPage() {
 
       {/* Table */}
       {loading ? (
-        <TableSkeleton />
+        <div className="flex h-48 items-center justify-center rounded-xl border border-border bg-white">
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        </div>
       ) : filteredLeads.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-white px-6 py-16 text-center">
-          <MessageSquare className="mb-3 h-10 w-10 text-foreground/20" aria-hidden="true" />
+        <div className="flex flex-col items-center justify-center rounded-xl border border-border bg-white px-6 py-16 text-center">
+          <MessageSquare className="mb-3 h-10 w-10 text-foreground/20" />
           <p className="text-sm font-medium text-foreground/60">
-            {hasFilters ? 'No leads match your filters' : 'No leads yet'}
+            {searchQuery || statusFilter !== 'all'
+              ? 'No leads match your filters'
+              : 'No leads yet'}
           </p>
-          <p className="mt-1 text-xs text-foreground/40 max-w-sm">
-            {hasFilters
-              ? 'Try adjusting your search or clearing the status filter.'
-              : 'Add the chat widget to your site to start collecting leads automatically.'}
+          <p className="mt-1 text-xs text-foreground/40">
+            {searchQuery || statusFilter !== 'all'
+              ? 'Try adjusting your search or filter'
+              : 'Leads will appear once visitors start chatting with the widget'}
           </p>
-          {!hasFilters && (
-            <Link
-              to="/dashboard/embed"
-              className="mt-4 inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition-all duration-150 hover:opacity-90 active:scale-[0.97]"
-            >
-              Set up widget
-              <ArrowRight className="h-3.5 w-3.5" />
-            </Link>
-          )}
         </div>
       ) : (
         <div className="overflow-hidden rounded-xl border border-border bg-white">
@@ -276,7 +249,7 @@ export function LeadsListPage() {
           </div>
 
           {/* Table rows */}
-          <div className="divide-y divide-border">
+          <div ref={rowsRef} className="divide-y divide-border">
             {filteredLeads.map((lead) => {
               const config = statusConfig[lead.status] || statusConfig.active
               const date = new Date(lead.created_at)
@@ -301,7 +274,9 @@ export function LeadsListPage() {
                   {/* Mobile card-style layout */}
                   <div className="sm:hidden flex items-center justify-between">
                     <span className="text-xs text-foreground/50">{dateStr}</span>
-                    <span className={`font-mono text-xs font-semibold ${config.text}`}>
+                    <span
+                      className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${config.color}`}
+                    >
                       {config.label}
                     </span>
                   </div>
@@ -322,8 +297,9 @@ export function LeadsListPage() {
                   </Link>
 
                   {/* Status - desktop */}
-                  <span className={`hidden sm:inline-flex items-center gap-1.5 font-mono text-xs font-semibold ${config.text}`}>
-                    <span className={`h-1.5 w-1.5 rounded-full ${config.dot}`} aria-hidden="true" />
+                  <span
+                    className={`hidden sm:inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${config.color}`}
+                  >
                     {config.label}
                   </span>
 
@@ -337,7 +313,7 @@ export function LeadsListPage() {
                     </Link>
                     <button
                       onClick={() => handleMarkHandled(lead.id)}
-                      className="cursor-pointer rounded-md p-1.5 text-foreground/40 opacity-0 group-hover:opacity-100 transition-all duration-150 hover:bg-emerald-50 hover:text-emerald-600 focus:opacity-100"
+                      className="cursor-pointer rounded-md p-1.5 text-foreground/40 opacity-0 group-hover:opacity-100 transition-all duration-150 hover:bg-green-50 hover:text-green-600 focus:opacity-100"
                       aria-label="Mark as handled"
                       title="Mark as handled"
                     >
@@ -360,7 +336,7 @@ export function LeadsListPage() {
       )}
 
       {/* Result count */}
-      {!loading && leads.length > 0 && (
+      {!loading && (
         <p className="mt-3 text-xs text-foreground/40">
           Showing {filteredLeads.length} of {leads.length} lead{leads.length !== 1 ? 's' : ''}
         </p>
